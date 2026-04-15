@@ -1,6 +1,6 @@
 export interface LoginRequest {
   email: string;
-  password?: string; // Optional if we plan to use passwordless or something, but usually required
+  password?: string;
 }
 
 export interface User {

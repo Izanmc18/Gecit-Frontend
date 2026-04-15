@@ -1,4 +1,4 @@
-import { Component, input, forwardRef } from '@angular/core';
+import { Component, Input, forwardRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms';
 
@@ -14,24 +14,25 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@a
     }
   ],
   templateUrl: './input.html',
+  styleUrls: ['./input.css']
 })
 export class InputField implements ControlValueAccessor {
-  label = input<string>('');
-  type = input<string>('text');
-  placeholder = input<string>('');
-  error = input<string | null>(null);
-  hasIconLeft = input<boolean>(false);
-  hasIconRight = input<boolean>(false);
+  @Input() label: string = '';
+  @Input() type: string = 'text';
+  @Input() placeholder: string = '';
+  @Input() error: string | null = null;
+  @Input() hasIconLeft: boolean = false;
+  @Input() hasIconRight: boolean = false;
 
   value: string = '';
   isDisabled: boolean = false;
   passwordVisible: boolean = false;
 
   get actualType(): string {
-    if (this.type() === 'password') {
+    if (this.type === 'password') {
       return this.passwordVisible ? 'text' : 'password';
     }
-    return this.type();
+    return this.type;
   }
 
   togglePasswordVisibility() {

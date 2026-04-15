@@ -5,12 +5,15 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { InputField } from '../ui/input/input';
 import { Button } from '../ui/button/button';
+import { LogoComponent } from '../ui/logo/logo';
+import { Footer } from '../footer/footer';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, InputField, Button],
+  imports: [CommonModule, ReactiveFormsModule, InputField, Button, LogoComponent, Footer],
   templateUrl: './login.html',
+  styleUrls: ['./login.css']
 })
 export class Login {
   private fb = inject(FormBuilder);
