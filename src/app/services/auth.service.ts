@@ -7,9 +7,8 @@ import { LoginRequest, LoginResponse, User } from '../models/auth.model';
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly apiUrl = 'http://localhost:3000/api/auth';
-  
-  // Modern Angular Signals for reactive state
+  private readonly apiUrl = 'http://localhost:3000/api/v1/auth';
+
   currentUser = signal<User | null>(null);
   isAuthenticated = signal<boolean>(false);
 

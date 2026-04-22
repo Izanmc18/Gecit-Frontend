@@ -8,7 +8,8 @@ export interface User {
   nombre: string;
   apellidos: string;
   email: string;
-  roles: string[];
+  idRol: string;
+  fotoUrl?: string;
 }
 
 export interface LoginResponse {
