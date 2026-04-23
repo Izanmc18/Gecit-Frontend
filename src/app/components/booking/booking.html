@@ -1,0 +1,222 @@
+<div class="booking-page d-flex flex-column align-items-center justify-content-center">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        
+        <div class="text-center mb-5">
+          <div class="logo-container mx-auto">
+            <app-logo [size]="420"></app-logo>
+          </div>
+        </div>
+
+        <div class="card booking-card shadow-lg p-4 border-0">
+          <div class="d-flex justify-content-between mb-4 px-2">
+            <div class="step-dot active" [class.completed]="step > 1">1</div>
+            <div class="step-line" [class.active]="step > 1"></div>
+            <div class="step-dot" [class.active]="step >= 2" [class.completed]="step > 2">2</div>
+            <div class="step-line" [class.active]="step > 2"></div>
+            <div class="step-dot" [class.active]="step >= 3">3</div>
+          </div>
+
+          @if (step === 1) {
+            <div class="animate-fade-in">
+              <h3 class="mb-2 fw-bold">¿Qué quieres hacer?</h3>
+              <p class="text-muted mb-4">Selecciona el trámite que deseas realizar para continuar.</p>
+              
+              <div class="tramites-list d-flex flex-column gap-3">
+                @for (t of tramites; track t.id) {
+                  <div (click)="bookingForm.get('idTramite')?.setValue(t.id)"
+                       class="tramite-item p-3 border rounded-3 d-flex align-items-center justify-content-between"
+                       [class.selected]="bookingForm.get('idTramite')?.value === t.id">
+                    <span class="fw-semibold">{{ t.nombreTramite }}</span>
+                    <i class="bi bi-chevron-right"></i>
+                  </div>
+                } @empty {
+                  <div class="text-center p-4 border rounded-3 bg-light">
+                    <p class="text-muted mb-0">No hay trámites disponibles en este momento.</p>
+                  </div>
+                }
+              </div>
+
+              <div class="d-grid mt-5">
+                <button class="btn btn-primary btn-lg rounded-pill py-3 fw-bold shadow" 
+                        [disabled]="!bookingForm.get('idTramite')?.value" 
+                        (click)="nextStep()">
+                  Siguiente Paso <i class="bi bi-arrow-right ms-2"></i>
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (step === 2) {
+            <div class="animate-fade-in">
+              <h3 class="mb-2 fw-bold">Fecha y Hora</h3>
+              <p class="text-muted mb-4">Elige el momento que mejor te venga para tu cita.</p>
+              
+              <div class="mb-4">
+                <label class="form-label fw-semibold">1. Selecciona el día</label>
+                <input type="date" 
+                       class="form-control form-control-lg rounded-3 border-2" 
+                       (change)="onDateSelected($any($event.target).value)"
+                       [min]="today">
+              </div>
+
+              @if (selectedDate) {
+                <div class="slots-container animate-fade-in">
+                  <label class="form-label fw-semibold mb-3">2. Selecciona la hora</label>
+                  
+                  <div class="d-flex flex-wrap gap-2">
+                    @for (slot of availableSlots; track slot) {
+                      <button (click)="selectTime(slot)"
+                              class="slot-chip btn"
+                              [class.btn-primary]="selectedTime === slot"
+                              [class.btn-outline-primary]="selectedTime !== slot">
+                        {{ slot }}
+                      </button>
+                    } @empty {
+                      <div class="alert alert-warning w-100 text-center py-4">
+                        <i class="bi bi-calendar-x d-block fs-3 mb-2"></i>
+                        No hay horas disponibles para este día. Prueba con otra fecha.
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="d-flex gap-2 mt-5">
+                <button class="btn btn-light btn-lg rounded-pill flex-grow-1 py-3" (click)="setStep(1)">
+                  Atrás
+                </button>
+                <button class="btn btn-primary btn-lg rounded-pill flex-grow-2 py-3 fw-bold shadow" 
+                        [disabled]="!selectedTime"
+                        (click)="nextStep()">
+                  Siguiente Paso <i class="bi bi-arrow-right ms-2"></i>
+                </button>
+              </div>
+            </div>
+          }
+          @if (step === 3) {
+            <div class="animate-fade-in" [formGroup]="bookingForm">
+              <h3 class="mb-2 fw-bold">Tus Datos Personales</h3>
+              <p class="text-muted mb-4">Ya casi terminamos. Déjanos tus datos para confirmar la cita.</p>
+              
+              <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Nombre</label>
+                  <input type="text" class="form-control form-control-lg rounded-3 border-2" 
+                         formControlName="clienteNombre" placeholder="Tu nombre"
+                         [class.is-invalid]="bookingForm.get('clienteNombre')?.invalid && bookingForm.get('clienteNombre')?.touched">
+                  @if (bookingForm.get('clienteNombre')?.invalid && bookingForm.get('clienteNombre')?.touched) {
+                    <div class="invalid-feedback">El nombre es obligatorio.</div>
+                  }
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Apellidos</label>
+                  <input type="text" class="form-control form-control-lg rounded-3 border-2" 
+                         formControlName="clienteApellidos" placeholder="Tus apellidos"
+                         [class.is-invalid]="bookingForm.get('clienteApellidos')?.invalid && bookingForm.get('clienteApellidos')?.touched">
+                  @if (bookingForm.get('clienteApellidos')?.invalid && bookingForm.get('clienteApellidos')?.touched) {
+                    <div class="invalid-feedback">Los apellidos son obligatorios.</div>
+                  }
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label fw-semibold">DNI / NIE</label>
+                  <input type="text" class="form-control form-control-lg rounded-3 border-2" 
+                         formControlName="clienteDni" placeholder="Ej: 12345678A"
+                         [class.is-invalid]="bookingForm.get('clienteDni')?.invalid && bookingForm.get('clienteDni')?.touched">
+                  @if (bookingForm.get('clienteDni')?.invalid && bookingForm.get('clienteDni')?.touched) {
+                    <div class="invalid-feedback">
+                      @if (bookingForm.get('clienteDni')?.errors?.['required']) {
+                        El DNI es obligatorio.
+                      } @else if (bookingForm.get('clienteDni')?.errors?.['invalidDni']) {
+                        El DNI introducido no es válido (comprueba la letra).
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Correo Electrónico</label>
+                  <input type="email" class="form-control form-control-lg rounded-3 border-2" 
+                         formControlName="clienteEmail" placeholder="correo@ejemplo.com"
+                         [class.is-invalid]="bookingForm.get('clienteEmail')?.invalid && bookingForm.get('clienteEmail')?.touched">
+                  @if (bookingForm.get('clienteEmail')?.invalid && bookingForm.get('clienteEmail')?.touched) {
+                    <div class="invalid-feedback">
+                      @if (bookingForm.get('clienteEmail')?.errors?.['required']) {
+                        El correo es obligatorio.
+                      } @else if (bookingForm.get('clienteEmail')?.errors?.['pattern']) {
+                        El formato del correo no es correcto (ej: usuario@dominio.com).
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Teléfono Móvil</label>
+                  <input type="tel" class="form-control form-control-lg rounded-3 border-2" 
+                         formControlName="clienteTelefono" placeholder="600 000 000"
+                         [class.is-invalid]="bookingForm.get('clienteTelefono')?.invalid && bookingForm.get('clienteTelefono')?.touched">
+                  @if (bookingForm.get('clienteTelefono')?.invalid && bookingForm.get('clienteTelefono')?.touched) {
+                    <div class="invalid-feedback">
+                      @if (bookingForm.get('clienteTelefono')?.errors?.['required']) {
+                        El teléfono es obligatorio.
+                      } @else if (bookingForm.get('clienteTelefono')?.errors?.['pattern']) {
+                        El teléfono debe tener 9 números y empezar por 6 o 7.
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="d-flex gap-2 mt-5">
+                <button class="btn btn-light btn-lg rounded-pill flex-grow-1 py-3" (click)="setStep(2)">
+                  Atrás
+                </button>
+                <button class="btn btn-primary btn-lg rounded-pill flex-grow-2 py-3 fw-bold shadow" 
+                        [disabled]="bookingForm.invalid"
+                        (click)="submitBooking()">
+                  Confirmar Cita <i class="bi bi-check-circle ms-2"></i>
+                </button>
+              </div>
+            </div>
+          }
+          @if (step === 4) {
+            <div class="animate-fade-in text-center py-4">
+              <div class="mb-4">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+              </div>
+              <h2 class="fw-bold mb-3">¡Cita Confirmada!</h2>
+              <p class="text-muted mb-4">
+                Tu reserva se ha completado con éxito. Hemos enviado un correo electrónico con los detalles de la cita.
+              </p>
+              
+              <div class="card bg-light border-0 rounded-4 text-start p-4 mb-4">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">Resumen de la Cita</h5>
+                <div class="d-flex mb-2">
+                  <i class="bi bi-person text-primary me-3"></i>
+                  <span>{{ bookingForm.get('clienteNombre')?.value }} {{ bookingForm.get('clienteApellidos')?.value }}</span>
+                </div>
+                <div class="d-flex mb-2">
+                  <i class="bi bi-calendar-event text-primary me-3"></i>
+                  <span>{{ selectedDate }} a las {{ selectedTime }}</span>
+                </div>
+                <div class="d-flex">
+                  <i class="bi bi-file-text text-primary me-3"></i>
+                  <span>Trámite seleccionado</span>
+                </div>
+              </div>
+
+              <button class="btn btn-outline-primary btn-lg rounded-pill py-3 px-5 fw-bold" 
+                      (click)="resetForm()">
+                Volver al Inicio
+              </button>
+            </div>
+          }
+        </div>
+
+        <div class="text-center mt-5">
+          <p class="text-muted small">&copy; 2026 GECIT - InnovaSur S.L. Todos los derechos reservados.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

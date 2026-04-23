@@ -1,0 +1,114 @@
+.booking-page {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.color-primary {
+  color: #2563eb;
+}
+
+.logo-container {
+  width: fit-content;
+}
+
+.booking-card {
+  border-radius: 24px;
+}
+
+.btn-primary {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  transition: transform 0.2s;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  background-color: #1d4ed8;
+}
+
+/* Step Indicator */
+.step-dot {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background-color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #64748b;
+  transition: all 0.3s;
+}
+
+.step-dot.active {
+  background-color: #2563eb;
+  color: white;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+}
+
+.step-dot.completed {
+  background-color: #10b981;
+  color: white;
+}
+
+.step-line {
+  flex-grow: 1;
+  height: 2px;
+  background-color: #e2e8f0;
+  align-self: center;
+  margin: 0 10px;
+}
+
+.step-line.active {
+  background-color: #2563eb;
+}
+
+/* Tramite List */
+.tramite-item {
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid #e2e8f0 !important;
+}
+
+.tramite-item:hover {
+  border-color: #cbd5e1 !important;
+  background-color: #f1f5f9;
+}
+
+.tramite-item.selected {
+  border-color: #2563eb !important;
+  background-color: rgba(37, 99, 235, 0.05);
+  color: #2563eb;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Slot Selection */
+.slot-chip {
+  min-width: 90px;
+  border-radius: 12px;
+  padding: 10px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: 2px solid #e2e8f0;
+}
+
+.slot-chip:hover:not(.btn-primary) {
+  background-color: #f0f7ff;
+  border-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(34%) sepia(98%) saturate(1917%) hue-rotate(205deg) brightness(97%) contrast(101%);
+}
