@@ -15,6 +15,10 @@ export class BookingService {
     return this.http.get<Entidad[]>(`${this.apiUrl}/entities`);
   }
 
+  getEntityByDomain(domain: string): Observable<Entidad> {
+    return this.http.get<Entidad>(`${this.apiUrl}/entities/public/${domain}`);
+  }
+
   getTramites(idEntidad: string): Observable<Tramite[]> {
     return this.http.get<Tramite[]>(`${this.apiUrl}/procedures?idEntidad=${idEntidad}`);
   }

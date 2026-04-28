@@ -12,4 +12,5 @@ export class LogoComponent {
   @Input() size: number = 180;
   @Input() grayscale: boolean = false;
   @Input() customClass: string = '';
+  @Input() useIcon: boolean = false;
 }

@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, catchError, throwError } from 'rxjs';
-import { LoginRequest, LoginResponse, User } from '../models/auth.model';
+import { LoginRequest, LoginResponse, RegisterRequest, User } from '../models/auth.model';
 
 @Injectable({
   providedIn: 'root'
@@ -35,6 +35,20 @@ export class AuthService {
       }),
       catchError(error => {
         return throwError(() => new Error(error.error?.message || 'Error de autenticación'));
+      })
+    );
+  }
+
+  register(data: RegisterRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/register`, data).pipe(
+      tap(response => {
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        this.currentUser.set(response.user);
+        this.isAuthenticated.set(true);
+      }),
+      catchError(error => {
+        return throwError(() => new Error(error.error?.message || 'Error al registrar usuario'));
       })
     );
   }

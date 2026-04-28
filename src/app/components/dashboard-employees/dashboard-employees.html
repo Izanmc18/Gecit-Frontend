@@ -1,0 +1,378 @@
+<div class="dashboard-container bg-light min-vh-100 pb-5">
+  <!-- Navbar Figma -->
+  <nav class="figma-nav sticky-top">
+    <div class="nav-logo d-flex align-items-center">
+      <img src="media/icono.png" alt="GECIT Logo" height="40" style="object-fit: contain;">
+    </div>
+    
+    <div class="nav-links d-none d-md-flex">
+      <a [class.active]="activeTab() === 'agenda'" (click)="activeTab.set('agenda')">Mi Agenda</a>
+      <a [class.active]="activeTab() === 'calendario'" (click)="activeTab.set('calendario')">Calendario</a>
+      <a [class.active]="activeTab() === 'laboral'" (click)="activeTab.set('laboral')">Gestión Laboral</a>
+    </div>
+
+    <div class="user-profile">
+      <div class="user-text d-none d-md-flex">
+        <strong>{{ currentUser()?.nombre }}</strong>
+        <span class="role-badge">Empleado</span>
+      </div>
+      <button (click)="logout()" class="btn-logout">Salir</button>
+    </div>
+  </nav>
+
+  <div class="main-wrapper">
+    @if (activeTab() === 'agenda') {
+      <div class="animate-fade-in">
+        <div class="dashboard-header flex-wrap gap-3">
+          <h1 class="display-6 fw-bold mb-0">Mi Agenda Hoy</h1>
+          
+          <div class="search-bar-modern flex-grow-1 mx-lg-4" style="max-width: 400px;">
+            <i class="bi bi-search text-muted"></i>
+            <input type="text" 
+                   placeholder="Buscar por cliente o ticket..."
+                   [ngModel]="searchTerm()"
+                   (ngModelChange)="searchTerm.set($event)">
+          </div>
+          
+          <div class="stats-container">
+            <div class="stat-card-modern active">
+              <span class="number">{{ stats().total }}</span>
+              <span>Total</span>
+            </div>
+            <div class="stat-card-modern pendientes">
+              <span class="number">{{ stats().pending }}</span>
+              <span>Pendientes</span>
+            </div>
+            <div class="stat-card-modern realizadas">
+              <span class="number">{{ stats().attended }}</span>
+              <span>Realizadas</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table View for Agenda -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mt-4">
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                  <tr>
+                    <th class="ps-4">Hora</th>
+                    <th>Cliente</th>
+                    <th>Ticket</th>
+                    <th>Estado</th>
+                    <th class="pe-4 text-end">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (cita of filteredAppointments(); track cita.id) {
+                    @if (cita.fechaHora.startsWith(today())) {
+                      <tr>
+                        <td class="ps-4">
+                          <span class="fw-bold text-primary">{{ cita.fechaHora | date:'HH:mm' }}</span>
+                        </td>
+                        <td>
+                          <div class="d-flex align-items-center">
+                            <div class="avatar-circle bg-primary-subtle text-primary me-2">
+                              {{ cita.clienteNombre[0] }}{{ cita.clienteApellidos[0] }}
+                            </div>
+                            <div>
+                              <div class="fw-bold">{{ cita.clienteNombre }} {{ cita.clienteApellidos }}</div>
+                              <div class="small text-muted">{{ cita.clienteDni }}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="badge bg-light text-dark border">{{ cita.turnoLlegada?.codigoTicket || 'N/A' }}</span>
+                        </td>
+                        <td>
+                          <span class="badge rounded-pill px-3 py-2" [ngClass]="getStatusClass(cita.estado)">
+                            {{ cita.estado }}
+                          </span>
+                        </td>
+                        <td class="pe-4 text-end">
+                          <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary" (click)="callClient(cita)" [disabled]="cita.estado !== 'Pendiente'">
+                              <i class="bi bi-megaphone"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-success mx-1" (click)="attendClient(cita)" [disabled]="cita.estado !== 'Pendiente'">
+                              <i class="bi bi-check-lg"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" (click)="finishAppointment(cita)" [disabled]="cita.estado !== 'Pendiente'">
+                              <i class="bi bi-flag"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  } @empty {
+                    <tr>
+                      <td colspan="5" class="text-center py-5">
+                        <i class="bi bi-calendar2-x display-4 text-muted d-block mb-3"></i>
+                        <p class="text-muted mb-0">No tienes nada pendiente por hoy.</p>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (activeTab() === 'calendario') {
+      <div class="animate-fade-in">
+        <div class="dashboard-header flex-wrap gap-3">
+          <h1 class="display-6 fw-bold mb-0">Calendario Semanal</h1>
+          <div class="stats-container">
+            <div class="stat-card-modern active">
+              <span class="number">{{ stats().total }}</span>
+              <span>Total</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="calendar-layout">
+          <!-- Sidebar Left: Real Mini Calendar -->
+          <div class="sidebar-left">
+            <div class="mini-calendar-mock">
+              <div class="mini-cal-header align-items-center">
+                <span class="fs-6 fw-bold">{{ currentMonthDate() | date:'MMMM yyyy':'':'es' | titlecase }}</span>
+                <div>
+                  <i class="bi bi-chevron-left me-3 cursor-pointer text-muted" (click)="prevMonth()"></i>
+                  <i class="bi bi-chevron-right cursor-pointer text-muted" (click)="nextMonth()"></i>
+                </div>
+              </div>
+              <div class="mini-cal-grid mt-3">
+                <div class="mini-cal-day fw-bold">D</div>
+                <div class="mini-cal-day fw-bold">L</div>
+                <div class="mini-cal-day fw-bold">M</div>
+                <div class="mini-cal-day fw-bold">M</div>
+                <div class="mini-cal-day fw-bold">J</div>
+                <div class="mini-cal-day fw-bold">V</div>
+                <div class="mini-cal-day fw-bold">S</div>
+                
+                @for (dayObj of miniCalendarDays(); track dayObj.date) {
+                  <div class="mini-cal-date" 
+                       [ngClass]="{
+                         'text-muted': !dayObj.isCurrentMonth,
+                         'text-dark fw-bold': dayObj.isCurrentMonth,
+                         'active shadow-sm': isToday(dayObj.date)
+                       }">
+                    {{ dayObj.date.getDate() }}
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Calendar -->
+          <div class="main-calendar">
+            <div class="cal-header">
+              @if (calendarView() === 'dia') {
+                <h2>{{ selectedDate() | date:'dd \'de\' MMMM, yyyy':'':'es' | titlecase }}</h2>
+              } @else if (calendarView() === 'semana') {
+                <h2>{{ currentWeekStart() | date:'dd \'de\' MMMM':'':'es' | titlecase }} - {{ displayedDays()[4] | date:'dd \'de\' MMMM, yyyy':'':'es' | titlecase }}</h2>
+              } @else {
+                <h2>{{ currentMonthDate() | date:'MMMM yyyy':'':'es' | titlecase }}</h2>
+              }
+              
+              <div class="d-flex align-items-center gap-3">
+                <div class="cal-view-toggles d-none d-md-flex">
+                  <button [class.active]="calendarView() === 'dia'" (click)="calendarView.set('dia')">Día</button>
+                  <button [class.active]="calendarView() === 'semana'" (click)="calendarView.set('semana')">Semana</button>
+                  <button [class.active]="calendarView() === 'mes'" (click)="calendarView.set('mes')">Mes</button>
+                </div>
+                
+                <button class="btn-create shadow-sm">
+                  <i class="bi bi-plus fs-5"></i> Crear Cita
+                </button>
+              </div>
+            </div>
+
+            <div class="calendar-grid-wrapper" [class.month-view]="calendarView() === 'mes'">
+              @if (calendarView() !== 'mes') {
+                <div class="grid-header" [style.grid-template-columns]="calendarView() === 'dia' ? '60px 1fr' : '60px repeat(5, 1fr)'">
+                  <div class="grid-header-cell">GMT+2</div>
+                  @for (day of displayedDays(); track day) {
+                    <div class="grid-header-cell" [class.bg-primary-subtle]="isToday(day)">
+                      {{ day | date:'EEE dd':'':'es' | uppercase }}
+                    </div>
+                  }
+                </div>
+                
+                <div class="grid-body">
+                  <div class="time-column">
+                    <div class="time-slot"><span>08:00</span></div>
+                    <div class="time-slot"><span>09:00</span></div>
+                    <div class="time-slot"><span>10:00</span></div>
+                    <div class="time-slot"><span>11:00</span></div>
+                    <div class="time-slot"><span>12:00</span></div>
+                    <div class="time-slot"><span>13:00</span></div>
+                    <div class="time-slot"><span>14:00</span></div>
+                    <div class="time-slot"><span>15:00</span></div>
+                  </div>
+                  
+                  <div class="day-columns-container" [style.grid-template-columns]="calendarView() === 'dia' ? '1fr' : 'repeat(5, 1fr)'">
+                    <div class="grid-lines">
+                      @for (hour of [0,1,2,3,4,5,6,7]; track hour) {
+                        <div class="grid-line"></div>
+                      }
+                    </div>
+                    
+                    @for (day of displayedDays(); track day) {
+                      <div class="day-column">
+                        @if (isLoading()) {
+                          <div class="d-flex justify-content-center align-items-center h-100" style="opacity: 0.3;">
+                            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                          </div>
+                        } @else {
+                          @for (cita of getAppointmentsForDay(day); track cita.id) {
+                            <div class="cal-event shadow-sm" 
+                                 [ngClass]="getAppointmentColorClass(cita)" 
+                                 [ngStyle]="getAppointmentStyle(cita)">
+                              <strong class="text-truncate">{{ cita.tramite?.nombreTramite || 'Cita' }}</strong>
+                              <span class="d-block text-truncate small">{{ cita.clienteNombre }} {{ cita.clienteApellidos }}</span>
+                            </div>
+                          }
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <!-- Mes View Grid -->
+                <div class="month-grid-header">
+                  <div>LUN</div><div>MAR</div><div>MIÉ</div><div>JUE</div><div>VIE</div><div>SÁB</div><div>DOM</div>
+                </div>
+                <div class="month-grid-body">
+                  @for (dayObj of miniCalendarDays(); track dayObj.date) {
+                    <div class="month-day-cell" 
+                         [ngClass]="{'other-month': !dayObj.isCurrentMonth, 'today': isToday(dayObj.date)}">
+                      <span class="day-number">{{ dayObj.date.getDate() }}</span>
+                      <div class="day-events">
+                        @for (cita of getAppointmentsForDay(dayObj.date); track cita.id) {
+                          <div class="month-event-dot" [ngClass]="getAppointmentColorClass(cita)"></div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+              
+              <div class="cal-footer">
+                <div class="d-flex gap-4">
+                  <div class="legend-item"><div class="dot green"></div> Realizadas</div>
+                  <div class="legend-item"><div class="dot orange"></div> Pendientes</div>
+                  <div class="legend-item"><div class="dot red"></div> Canceladas</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (activeTab() === 'laboral') {
+      <div class="animate-fade-in">
+        <div class="row g-4">
+          <!-- Form Section -->
+          <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 sticky-top" style="top: 100px;">
+              <h3 class="fw-bold mb-4">Solicitar Ausencia</h3>
+              <form [formGroup]="absenceForm" (ngSubmit)="requestAbsence()">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Tipo de Ausencia</label>
+                  <select formControlName="tipo" class="form-select rounded-3">
+                    <option [value]="tipoAusencia.VACACIONES">Vacaciones</option>
+                    <option [value]="tipoAusencia.ENFERMEDAD">Enfermedad</option>
+                    <option [value]="tipoAusencia.ASUNTOS_PROPIOS">Asuntos Propios</option>
+                    <option [value]="tipoAusencia.OTRO">Otro</option>
+                  </select>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Desde</label>
+                  <input type="date" formControlName="fechaInicio" class="form-control rounded-3">
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Hasta</label>
+                  <input type="date" formControlName="fechaFin" class="form-control rounded-3">
+                </div>
+                
+                <div class="mb-4">
+                  <label class="form-label fw-semibold">Motivo / Observaciones</label>
+                  <textarea formControlName="motivo" class="form-control rounded-3" rows="3" placeholder="Opcional..."></textarea>
+                </div>
+                
+                <button type="submit" [disabled]="absenceForm.invalid" class="btn btn-primary w-100 rounded-pill py-3 fw-bold">
+                  Enviar Solicitud
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- History Section -->
+          <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+              <div class="card-header bg-white py-3 border-0">
+                <h4 class="fw-bold mb-0">Mis Solicitudes</h4>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                      <tr>
+                        <th class="ps-4">Tipo</th>
+                        <th>Periodo</th>
+                        <th>Estado</th>
+                        <th class="pe-4 text-end">Solicitada</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (abs of absences(); track abs.id) {
+                        <tr>
+                          <td class="ps-4 py-3">
+                            <span class="fw-semibold">{{ abs.tipo }}</span>
+                          </td>
+                          <td>
+                            <div class="small">
+                              <span class="d-block">{{ abs.fechaInicio | date:'dd/MM/yyyy' }}</span>
+                              <span class="text-muted">al {{ abs.fechaFin | date:'dd/MM/yyyy' }}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <span class="badge rounded-pill px-3 py-2" 
+                                  [ngClass]="{
+                                    'bg-warning-subtle text-warning border-warning': abs.estado === 'Pendiente',
+                                    'bg-success-subtle text-success border-success': abs.estado === 'Aprobada',
+                                    'bg-danger-subtle text-danger border-danger': abs.estado === 'Rechazada'
+                                  }"
+                                  style="border: 1px solid;">
+                              {{ abs.estado }}
+                            </span>
+                          </td>
+                          <td class="pe-4 text-end small text-muted">
+                            {{ abs.fechaSolicitud | date:'short' }}
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="4" class="text-center py-5">
+                            <p class="text-muted mb-0">No has realizado ninguna solicitud todavía.</p>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

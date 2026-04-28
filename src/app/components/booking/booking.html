@@ -5,26 +5,55 @@
         
         <div class="text-center mb-5">
           <div class="logo-container mx-auto">
-            <app-logo [size]="420"></app-logo>
+            <app-logo [size]="380"></app-logo>
           </div>
         </div>
 
         <div class="card booking-card shadow-lg p-4 border-0">
           <div class="d-flex justify-content-between mb-4 px-2">
-            <div class="step-dot active" [class.completed]="step > 1">1</div>
-            <div class="step-line" [class.active]="step > 1"></div>
-            <div class="step-dot" [class.active]="step >= 2" [class.completed]="step > 2">2</div>
-            <div class="step-line" [class.active]="step > 2"></div>
-            <div class="step-dot" [class.active]="step >= 3">3</div>
+            <div class="step-dot active" [class.completed]="step() > 1">1</div>
+            <div class="step-line" [class.active]="step() > 1"></div>
+            <div class="step-dot" [class.active]="step() >= 2" [class.completed]="step() > 2">2</div>
+            <div class="step-line" [class.active]="step() > 2"></div>
+            <div class="step-dot" [class.active]="step() >= 3">3</div>
           </div>
 
-          @if (step === 1) {
+          @if (!isAuthorized()) {
+            <div class="text-center py-5 animate-fade-in">
+              <i class="bi bi-exclamation-triangle-fill text-warning fs-1 mb-3"></i>
+              <h4 class="fw-bold">Acceso Restringido</h4>
+              <p class="text-muted">
+                Has iniciado sesión como <strong>Empleado</strong> o <strong>Admin</strong>. 
+                Las citas solo pueden ser solicitadas por clientes o usuarios no identificados.
+              </p>
+              <button class="btn btn-primary rounded-pill px-4 mt-3" (click)="authService.logout(); isAuthorized.set(true)">
+                Cerrar Sesión para continuar
+              </button>
+            </div>
+          } @else {
+
+          @if (isLoadingEntidad()) {
+            <div class="text-center py-5">
+              <div class="spinner-border text-primary" role="status"></div>
+              <p class="mt-3 text-muted">Cargando datos...</p>
+            </div>
+          } @else if (entidadNotFound()) {
+            <div class="text-center py-5 animate-fade-in">
+              <i class="bi bi-building-x text-danger fs-1 mb-3"></i>
+              <h4 class="fw-bold">Empresa no encontrada</h4>
+              <p class="text-muted">
+                La dirección a la que intentas acceder no corresponde a ninguna entidad registrada en nuestro sistema. Por favor, revisa el enlace.
+              </p>
+            </div>
+          } @else {
+
+          @if (step() === 1) {
             <div class="animate-fade-in">
-              <h3 class="mb-2 fw-bold">¿Qué quieres hacer?</h3>
+              <h3 class="mb-2 fw-bold text-primary">{{ entidadName() }}</h3>
               <p class="text-muted mb-4">Selecciona el trámite que deseas realizar para continuar.</p>
               
               <div class="tramites-list d-flex flex-column gap-3">
-                @for (t of tramites; track t.id) {
+                @for (t of tramites(); track t.id) {
                   <div (click)="bookingForm.get('idTramite')?.setValue(t.id)"
                        class="tramite-item p-3 border rounded-3 d-flex align-items-center justify-content-between"
                        [class.selected]="bookingForm.get('idTramite')?.value === t.id">
@@ -48,7 +77,7 @@
             </div>
           }
 
-          @if (step === 2) {
+          @if (step() === 2) {
             <div class="animate-fade-in">
               <h3 class="mb-2 fw-bold">Fecha y Hora</h3>
               <p class="text-muted mb-4">Elige el momento que mejor te venga para tu cita.</p>
@@ -61,16 +90,16 @@
                        [min]="today">
               </div>
 
-              @if (selectedDate) {
+              @if (selectedDate()) {
                 <div class="slots-container animate-fade-in">
                   <label class="form-label fw-semibold mb-3">2. Selecciona la hora</label>
                   
                   <div class="d-flex flex-wrap gap-2">
-                    @for (slot of availableSlots; track slot) {
+                    @for (slot of availableSlots(); track slot) {
                       <button (click)="selectTime(slot)"
                               class="slot-chip btn"
-                              [class.btn-primary]="selectedTime === slot"
-                              [class.btn-outline-primary]="selectedTime !== slot">
+                              [class.btn-primary]="selectedTime() === slot"
+                              [class.btn-outline-primary]="selectedTime() !== slot">
                         {{ slot }}
                       </button>
                     } @empty {
@@ -88,97 +117,176 @@
                   Atrás
                 </button>
                 <button class="btn btn-primary btn-lg rounded-pill flex-grow-2 py-3 fw-bold shadow" 
-                        [disabled]="!selectedTime"
+                        [disabled]="!selectedTime()"
                         (click)="nextStep()">
                   Siguiente Paso <i class="bi bi-arrow-right ms-2"></i>
                 </button>
               </div>
             </div>
           }
-          @if (step === 3) {
-            <div class="animate-fade-in" [formGroup]="bookingForm">
+          @if (step() === 3) {
+            <div class="animate-fade-in">
               <h3 class="mb-2 fw-bold">Tus Datos Personales</h3>
-              <p class="text-muted mb-4">Ya casi terminamos. Déjanos tus datos para confirmar la cita.</p>
+              <p class="text-muted mb-4">Ya casi terminamos. Confirma tu identidad para finalizar.</p>
               
-              <div class="row g-3 mb-4">
-                <div class="col-md-6">
-                  <label class="form-label fw-semibold">Nombre</label>
-                  <input type="text" class="form-control form-control-lg rounded-3 border-2" 
-                         formControlName="clienteNombre" placeholder="Tu nombre"
-                         [class.is-invalid]="bookingForm.get('clienteNombre')?.invalid && bookingForm.get('clienteNombre')?.touched">
-                  @if (bookingForm.get('clienteNombre')?.invalid && bookingForm.get('clienteNombre')?.touched) {
-                    <div class="invalid-feedback">El nombre es obligatorio.</div>
-                  }
+              @if (!authService.isAuthenticated()) {
+                <div class="auth-selection mb-4">
+                  <div class="auth-tabs">
+                    <button class="auth-tab" [class.active]="authMode() === 'guest'" (click)="setAuthMode('guest')">
+                      Invitado
+                    </button>
+                    <button class="auth-tab" [class.active]="authMode() === 'login'" (click)="setAuthMode('login')">
+                      Tengo Cuenta
+                    </button>
+                    <button class="auth-tab" [class.active]="authMode() === 'register'" (click)="setAuthMode('register')">
+                      Registrarme
+                    </button>
+                  </div>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label fw-semibold">Apellidos</label>
-                  <input type="text" class="form-control form-control-lg rounded-3 border-2" 
-                         formControlName="clienteApellidos" placeholder="Tus apellidos"
-                         [class.is-invalid]="bookingForm.get('clienteApellidos')?.invalid && bookingForm.get('clienteApellidos')?.touched">
-                  @if (bookingForm.get('clienteApellidos')?.invalid && bookingForm.get('clienteApellidos')?.touched) {
-                    <div class="invalid-feedback">Los apellidos son obligatorios.</div>
-                  }
-                </div>
-                <div class="col-md-12">
-                  <label class="form-label fw-semibold">DNI / NIE</label>
-                  <input type="text" class="form-control form-control-lg rounded-3 border-2" 
-                         formControlName="clienteDni" placeholder="Ej: 12345678A"
-                         [class.is-invalid]="bookingForm.get('clienteDni')?.invalid && bookingForm.get('clienteDni')?.touched">
-                  @if (bookingForm.get('clienteDni')?.invalid && bookingForm.get('clienteDni')?.touched) {
-                    <div class="invalid-feedback">
-                      @if (bookingForm.get('clienteDni')?.errors?.['required']) {
-                        El DNI es obligatorio.
-                      } @else if (bookingForm.get('clienteDni')?.errors?.['invalidDni']) {
-                        El DNI introducido no es válido (comprueba la letra).
-                      }
-                    </div>
-                  }
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label fw-semibold">Correo Electrónico</label>
-                  <input type="email" class="form-control form-control-lg rounded-3 border-2" 
-                         formControlName="clienteEmail" placeholder="correo@ejemplo.com"
-                         [class.is-invalid]="bookingForm.get('clienteEmail')?.invalid && bookingForm.get('clienteEmail')?.touched">
-                  @if (bookingForm.get('clienteEmail')?.invalid && bookingForm.get('clienteEmail')?.touched) {
-                    <div class="invalid-feedback">
-                      @if (bookingForm.get('clienteEmail')?.errors?.['required']) {
-                        El correo es obligatorio.
-                      } @else if (bookingForm.get('clienteEmail')?.errors?.['pattern']) {
-                        El formato del correo no es correcto (ej: usuario@dominio.com).
-                      }
-                    </div>
-                  }
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label fw-semibold">Teléfono Móvil</label>
-                  <input type="tel" class="form-control form-control-lg rounded-3 border-2" 
-                         formControlName="clienteTelefono" placeholder="600 000 000"
-                         [class.is-invalid]="bookingForm.get('clienteTelefono')?.invalid && bookingForm.get('clienteTelefono')?.touched">
-                  @if (bookingForm.get('clienteTelefono')?.invalid && bookingForm.get('clienteTelefono')?.touched) {
-                    <div class="invalid-feedback">
-                      @if (bookingForm.get('clienteTelefono')?.errors?.['required']) {
-                        El teléfono es obligatorio.
-                      } @else if (bookingForm.get('clienteTelefono')?.errors?.['pattern']) {
-                        El teléfono debe tener 9 números y empezar por 6 o 7.
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
 
-              <div class="d-flex gap-2 mt-5">
-                <button class="btn btn-light btn-lg rounded-pill flex-grow-1 py-3" (click)="setStep(2)">
-                  Atrás
-                </button>
-                <button class="btn btn-primary btn-lg rounded-pill flex-grow-2 py-3 fw-bold shadow" 
-                        [disabled]="bookingForm.invalid"
-                        (click)="submitBooking()">
-                  Confirmar Cita <i class="bi bi-check-circle ms-2"></i>
-                </button>
-              </div>
+                @if (authMode() === 'login') {
+                  <div class="auth-form-container p-4 mb-4 animate-fade-in" [formGroup]="loginForm">
+                    <h5 class="fw-bold mb-3 text-center">Accede a tu cuenta</h5>
+                    <div class="mb-3">
+                      <input type="email" class="form-control form-control-lg border-2 rounded-3" 
+                             [class.is-invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+                             placeholder="Email" formControlName="email">
+                      @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
+                        <div class="invalid-feedback">Introduce un email válido.</div>
+                      }
+                    </div>
+                    <div class="mb-3">
+                      <input type="password" class="form-control form-control-lg border-2 rounded-3" 
+                             [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+                             placeholder="Contraseña" formControlName="password">
+                      @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+                        <div class="invalid-feedback">La contraseña es obligatoria.</div>
+                      }
+                    </div>
+                    @if (authError()) {
+                      <div class="alert alert-danger py-2 small mb-3">{{ authError() }}</div>
+                    }
+                    <button class="btn btn-primary w-100 py-3 rounded-pill fw-bold" (click)="onLoginSubmit()" [disabled]="isAuthLoading()">
+                      {{ isAuthLoading() ? 'Iniciando...' : 'Iniciar Sesión' }}
+                    </button>
+                  </div>
+                }
+
+                @if (authMode() === 'register') {
+                  <div class="auth-form-container p-4 mb-4 animate-fade-in" [formGroup]="registerForm">
+                    <h5 class="fw-bold mb-3 text-center">Crea tu cuenta de cliente</h5>
+                    <div class="row g-2 mb-3">
+                      <div class="col-6">
+                        <input type="text" class="form-control border-2 rounded-3" 
+                               [class.is-invalid]="registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched"
+                               placeholder="Nombre" formControlName="nombre">
+                      </div>
+                      <div class="col-6">
+                        <input type="text" class="form-control border-2 rounded-3" 
+                               [class.is-invalid]="registerForm.get('apellidos')?.invalid && registerForm.get('apellidos')?.touched"
+                               placeholder="Apellidos" formControlName="apellidos">
+                      </div>
+                    </div>
+                    <div class="mb-2">
+                      <input type="text" class="form-control border-2 rounded-3" 
+                             [class.is-invalid]="registerForm.get('dni')?.invalid && registerForm.get('dni')?.touched"
+                             placeholder="DNI" formControlName="dni">
+                      @if (registerForm.get('dni')?.invalid && registerForm.get('dni')?.touched) {
+                        <div class="invalid-feedback d-block small">DNI no válido.</div>
+                      }
+                    </div>
+                    <div class="mb-2">
+                      <input type="email" class="form-control border-2 rounded-3" 
+                             [class.is-invalid]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
+                             placeholder="Email" formControlName="email">
+                      @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
+                        <div class="invalid-feedback d-block small">Email no válido.</div>
+                      }
+                    </div>
+                    <div class="mb-2">
+                      <input type="password" class="form-control border-2 rounded-3" 
+                             [class.is-invalid]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
+                             placeholder="Contraseña" formControlName="password">
+                      @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
+                        <div class="invalid-feedback d-block small">Mínimo 6 caracteres.</div>
+                      }
+                    </div>
+                    <div class="mb-3">
+                      <input type="text" class="form-control border-2 rounded-3" 
+                             [class.is-invalid]="registerForm.get('telefono')?.invalid && registerForm.get('telefono')?.touched"
+                             placeholder="Teléfono" formControlName="telefono">
+                      @if (registerForm.get('telefono')?.invalid && registerForm.get('telefono')?.touched) {
+                        <div class="invalid-feedback d-block small">Teléfono no válido.</div>
+                      }
+                    </div>
+                    @if (authError()) {
+                      <div class="alert alert-danger py-2 small mb-3">{{ authError() }}</div>
+                    }
+                    <button class="btn btn-primary w-100 py-3 rounded-pill fw-bold" (click)="onRegisterSubmit()" [disabled]="isAuthLoading()">
+                      {{ isAuthLoading() ? 'Registrando...' : 'Registrar y Continuar' }}
+                    </button>
+                  </div>
+                }
+              } @else {
+                <div class="user-badge mb-4 animate-fade-in">
+                  <i class="bi bi-person-check-fill fs-3"></i>
+                  <div>
+                    <div class="fw-bold">Sesión iniciada</div>
+                    <div class="small opacity-75">{{ authService.currentUser()?.nombre }} {{ authService.currentUser()?.apellidos }}</div>
+                  </div>
+                </div>
+              }
+
+              @if (authMode() === 'guest' || authService.isAuthenticated()) {
+                <div [formGroup]="bookingForm" class="animate-fade-in">
+                  <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold small">Nombre</label>
+                      <input type="text" class="form-control rounded-3 border-2" 
+                             formControlName="clienteNombre" placeholder="Tu nombre"
+                             [class.is-invalid]="bookingForm.get('clienteNombre')?.invalid && bookingForm.get('clienteNombre')?.touched">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold small">Apellidos</label>
+                      <input type="text" class="form-control rounded-3 border-2" 
+                             formControlName="clienteApellidos" placeholder="Tus apellidos"
+                             [class.is-invalid]="bookingForm.get('clienteApellidos')?.invalid && bookingForm.get('clienteApellidos')?.touched">
+                    </div>
+                    <div class="col-md-12">
+                      <label class="form-label fw-semibold small">DNI / NIE</label>
+                      <input type="text" class="form-control rounded-3 border-2" 
+                             formControlName="clienteDni" placeholder="Ej: 12345678A"
+                             [class.is-invalid]="bookingForm.get('clienteDni')?.invalid && bookingForm.get('clienteDni')?.touched">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold small">Correo Electrónico</label>
+                      <input type="email" class="form-control rounded-3 border-2" 
+                             formControlName="clienteEmail" placeholder="correo@ejemplo.com"
+                             [class.is-invalid]="bookingForm.get('clienteEmail')?.invalid && bookingForm.get('clienteEmail')?.touched">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold small">Teléfono Móvil</label>
+                      <input type="tel" class="form-control rounded-3 border-2" 
+                             formControlName="clienteTelefono" placeholder="600 000 000"
+                             [class.is-invalid]="bookingForm.get('clienteTelefono')?.invalid && bookingForm.get('clienteTelefono')?.touched">
+                    </div>
+                  </div>
+
+                  <div class="d-flex gap-2 mt-5">
+                    <button class="btn btn-light btn-lg rounded-pill flex-grow-1 py-3" (click)="setStep(2)">
+                      Atrás
+                    </button>
+                    <button class="btn btn-primary btn-lg rounded-pill flex-grow-2 py-3 fw-bold shadow" 
+                            [disabled]="bookingForm.invalid"
+                            (click)="submitBooking()">
+                      Confirmar Cita <i class="bi bi-check-circle ms-2"></i>
+                    </button>
+                  </div>
+                </div>
+              }
             </div>
           }
-          @if (step === 4) {
+          @if (step() === 4) {
             <div class="animate-fade-in text-center py-4">
               <div class="mb-4">
                 <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
@@ -196,7 +304,7 @@
                 </div>
                 <div class="d-flex mb-2">
                   <i class="bi bi-calendar-event text-primary me-3"></i>
-                  <span>{{ selectedDate }} a las {{ selectedTime }}</span>
+                  <span>{{ selectedDate() }} a las {{ selectedTime() }}</span>
                 </div>
                 <div class="d-flex">
                   <i class="bi bi-file-text text-primary me-3"></i>
@@ -210,7 +318,10 @@
               </button>
             </div>
           }
+          }
+          }
         </div>
+
 
         <div class="text-center mt-5">
           <p class="text-muted small">&copy; 2026 GECIT - InnovaSur S.L. Todos los derechos reservados.</p>

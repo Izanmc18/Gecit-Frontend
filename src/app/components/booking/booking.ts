@@ -1,9 +1,12 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { BookingService } from '../../services/booking.service';
+import { AuthService } from '../../services/auth.service';
 import { Tramite } from '../../models/booking.model';
 import { LogoComponent } from '../ui/logo/logo';
+import { RegisterRequest } from '../../models/auth.model';
 
 export function dniValidator() {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -43,12 +46,16 @@ export function dniValidator() {
 export class Booking implements OnInit {
   private fb = inject(FormBuilder);
   private bookingService = inject(BookingService);
-  private cdr = inject(ChangeDetectorRef);
+  public authService = inject(AuthService);
+  private route = inject(ActivatedRoute);
 
-  readonly ID_ENTIDAD_DEFAULT = 'a82c4f61-4444-4b5c-8b88-c2e6d8f9b234';
+  idEntidad = signal<string | null>(null);
+  entidadName = signal<string>('');
+  entidadNotFound = signal<boolean>(false);
+  isLoadingEntidad = signal<boolean>(true);
 
   bookingForm = this.fb.group({
-    idEntidad: [this.ID_ENTIDAD_DEFAULT, Validators.required],
+    idEntidad: ['', Validators.required],
     idTramite: ['', Validators.required],
     clienteNombre: ['', Validators.required],
     clienteApellidos: ['', Validators.required],
@@ -57,84 +64,185 @@ export class Booking implements OnInit {
     clienteTelefono: ['', [Validators.required, Validators.pattern(/^[67][0-9]{8}$/)]]
   });
 
-  tramites: Tramite[] = [];
-  availableSlots: string[] = [];
-  selectedDate: string = '';
-  selectedTime: string = '';
-  today: string = new Date().toISOString().split('T')[0];
-  step = 1;
+  loginForm = this.fb.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', Validators.required]
+  });
+
+  registerForm = this.fb.group({
+    nombre: ['', Validators.required],
+    apellidos: ['', Validators.required],
+    dni: ['', [Validators.required, dniValidator()]],
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
+    telefono: ['', [Validators.required, Validators.pattern(/^[67][0-9]{8}$/)]]
+  });
+
+  tramites = signal<Tramite[]>([]);
+  availableSlots = signal<string[]>([]);
+  selectedDate = signal<string>('');
+  selectedTime = signal<string>('');
+  today = new Date().toISOString().split('T')[0];
+  step = signal<number>(1);
+  authMode = signal<'guest' | 'login' | 'register'>('guest');
+  authError = signal<string>('');
+  isAuthLoading = signal<boolean>(false);
+
+  isAuthorized = signal<boolean>(true);
 
   ngOnInit() {
-    this.loadTramites();
+    this.checkRole();
+    this.checkInitialAuth();
     
-    // Forzar detección de cambios al escribir en el formulario (por el modo zoneless)
-    this.bookingForm.valueChanges.subscribe(() => {
-      this.cdr.detectChanges();
+    this.route.paramMap.subscribe(params => {
+      const domain = params.get('domain');
+      if (domain) {
+        this.loadEntityByDomain(domain);
+      } else {
+        this.entidadNotFound.set(true);
+        this.isLoadingEntidad.set(false);
+      }
     });
   }
 
-  loadTramites() {
-    this.bookingService.getTramites(this.ID_ENTIDAD_DEFAULT).subscribe({
-      next: (data: Tramite[]) => {
-        this.tramites = data;
-        this.cdr.detectChanges();
+  loadEntityByDomain(domain: string) {
+    this.isLoadingEntidad.set(true);
+    this.bookingService.getEntityByDomain(domain).subscribe({
+      next: (entidad) => {
+        this.idEntidad.set(entidad.id);
+        this.entidadName.set(entidad.nombre);
+        this.bookingForm.get('idEntidad')?.setValue(entidad.id);
+        this.isLoadingEntidad.set(false);
+        this.loadTramites();
       },
+      error: () => {
+        this.entidadNotFound.set(true);
+        this.isLoadingEntidad.set(false);
+      }
+    });
+  }
+
+  private checkRole() {
+    const user = this.authService.currentUser();
+    if (user) {
+      const allowedRoles = ['e51b3a32-3333-4a3b-9a99-b1d5c7f8a123']; // Solo Cliente
+      if (!allowedRoles.includes(user.idRol)) {
+        this.isAuthorized.set(false);
+      }
+    }
+  }
+
+  private checkInitialAuth() {
+    const user = this.authService.currentUser();
+    if (user && this.isAuthorized()) {
+      this.fillFormFromUser(user);
+    }
+  }
+
+  loadTramites() {
+    const id = this.idEntidad();
+    if (!id) return;
+    this.bookingService.getTramites(id).subscribe({
+      next: (data: Tramite[]) => this.tramites.set(data),
       error: (err) => console.error('Error cargando trámites', err)
     });
   }
 
   onDateSelected(date: string) {
-    this.selectedDate = date;
-    this.selectedTime = '';
+    this.selectedDate.set(date);
+    this.selectedTime.set('');
     this.loadSlots();
   }
 
   loadSlots() {
     const idTramite = this.bookingForm.get('idTramite')?.value;
-    if (idTramite && this.selectedDate) {
-      this.bookingService.getSlots(this.ID_ENTIDAD_DEFAULT, idTramite, this.selectedDate).subscribe({
-        next: (slots) => {
-          this.availableSlots = slots;
-          this.cdr.detectChanges();
-        },
+    const date = this.selectedDate();
+    const idEntidad = this.idEntidad();
+    if (idTramite && date && idEntidad) {
+      this.bookingService.getSlots(idEntidad, idTramite, date).subscribe({
+        next: (slots) => this.availableSlots.set(slots),
         error: (err) => console.error('Error cargando huecos', err)
       });
     }
   }
 
   selectTime(time: string) {
-    this.selectedTime = time;
-    this.cdr.detectChanges();
+    this.selectedTime.set(time);
   }
 
   setStep(n: number) {
-    this.step = n;
-    this.cdr.detectChanges();
+    this.step.set(n);
   }
 
   nextStep() {
-    if (this.step === 1 && this.bookingForm.get('idTramite')?.valid) {
+    const currentStep = this.step();
+    if (currentStep === 1 && this.bookingForm.get('idTramite')?.valid) {
       this.setStep(2);
-    } else if (this.step === 2 && this.selectedDate && this.selectedTime) {
+    } else if (currentStep === 2 && this.selectedDate() && this.selectedTime()) {
       this.setStep(3);
     }
   }
 
+  setAuthMode(mode: 'guest' | 'login' | 'register') {
+    this.authMode.set(mode);
+    this.authError.set('');
+  }
+
+  onLoginSubmit() {
+    if (this.loginForm.invalid) return;
+    this.isAuthLoading.set(true);
+    this.authError.set('');
+    
+    this.authService.login(this.loginForm.value as any).subscribe({
+      next: (res: any) => {
+        this.fillFormFromUser(res.user);
+        this.isAuthLoading.set(false);
+        this.setAuthMode('guest');
+      },
+      error: (err: any) => {
+        this.authError.set(err.message);
+        this.isAuthLoading.set(false);
+      }
+    });
+  }
+
+  onRegisterSubmit() {
+    if (this.registerForm.invalid) return;
+    this.isAuthLoading.set(true);
+    this.authError.set('');
+
+    this.authService.register(this.registerForm.value as any).subscribe({
+      next: (res: any) => {
+        this.fillFormFromUser(res.user);
+        this.isAuthLoading.set(false);
+        this.setAuthMode('guest');
+      },
+      error: (err: any) => {
+        this.authError.set(err.message);
+        this.isAuthLoading.set(false);
+      }
+    });
+  }
+
+  fillFormFromUser(user: any) {
+    this.bookingForm.patchValue({
+      clienteNombre: user.nombre,
+      clienteApellidos: user.apellidos,
+      clienteDni: user.dni || '',
+      clienteEmail: user.email,
+      clienteTelefono: user.telefono || ''
+    });
+  }
+
   submitBooking() {
-    if (this.bookingForm.valid && this.selectedDate && this.selectedTime) {
-      // Por ahora, solo avanzamos al paso 4 (Confirmación visual)
-      this.step = 4;
-      this.cdr.detectChanges();
-      
-      // Aquí iría la llamada al backend para crear la cita:
-      // const fechaHora = new Date(`${this.selectedDate}T${this.selectedTime}`).toISOString();
-      // ... (llamada a this.bookingService.createAppointment)
+    if (this.bookingForm.valid && this.selectedDate() && this.selectedTime()) {
+      this.step.set(4);
     }
   }
 
   resetForm() {
     this.bookingForm.reset({
-      idEntidad: this.ID_ENTIDAD_DEFAULT,
+      idEntidad: this.idEntidad(),
       idTramite: '',
       clienteNombre: '',
       clienteApellidos: '',
@@ -142,10 +250,9 @@ export class Booking implements OnInit {
       clienteEmail: '',
       clienteTelefono: ''
     });
-    this.selectedDate = '';
-    this.selectedTime = '';
-    this.availableSlots = [];
-    this.step = 1;
-    this.cdr.detectChanges();
+    this.selectedDate.set('');
+    this.selectedTime.set('');
+    this.availableSlots.set([]);
+    this.step.set(1);
   }
 }

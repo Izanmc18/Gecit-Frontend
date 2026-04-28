@@ -22,7 +22,7 @@ export class Login {
 
   loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(4)]]
+    password: ['', [Validators.required, Validators.minLength(6)]]
   });
 
   isLoading = false;
@@ -40,10 +40,9 @@ export class Login {
     const { email, password } = this.loginForm.value;
 
     this.authService.login({ email: email!, password: password! }).subscribe({
-      next: (response) => {
+      next: () => {
         this.isLoading = false;
-        // TODO: Navegar a dashboard o home segun el rol 
-        console.log(response.token);
+        this.router.navigate(['/dashboard-employees']);
       },
       error: (error) => {
         this.errorMessage = error.message;

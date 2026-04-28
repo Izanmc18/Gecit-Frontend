@@ -1,6 +1,6 @@
 <div class="logo-container {{ customClass }}" [style.width.px]="size">
   <img 
-    src="/media/logo.jpg" 
+    [src]="useIcon ? '/media/icono.png' : '/media/logo.jpg'" 
     alt="GECIT Logo" 
     class="logo-img"
     [class.logo-grayscale]="grayscale"

@@ -1,6 +1,6 @@
 export interface Entidad {
   id: string;
-  nombreEntidad: string;
+  nombre: string;
 }
 
 export interface Tramite {
