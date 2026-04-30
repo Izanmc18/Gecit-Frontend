@@ -15,6 +15,18 @@ export class AbsenceService {
     return this.http.get<{ data: AbsenceResponse[] }>(`${this.apiUrl}`, { params });
   }
 
+  getAllAbsences(): Observable<{ data: AbsenceResponse[] }> {
+    return this.http.get<{ data: AbsenceResponse[] }>(`${this.apiUrl}`);
+  }
+
+  approveAbsence(id: string): Observable<AbsenceResponse> {
+    return this.http.patch<AbsenceResponse>(`${this.apiUrl}/${id}/approve`, {});
+  }
+
+  rejectAbsence(id: string): Observable<AbsenceResponse> {
+    return this.http.patch<AbsenceResponse>(`${this.apiUrl}/${id}/reject`, {});
+  }
+
   requestAbsence(request: AbsenceRequest): Observable<AbsenceResponse> {
     return this.http.post<AbsenceResponse>(`${this.apiUrl}`, request);
   }

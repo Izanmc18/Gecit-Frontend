@@ -1,11 +1,12 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { BookingService } from '../../services/booking.service';
 import { AuthService } from '../../services/auth.service';
 import { Tramite } from '../../models/booking.model';
 import { LogoComponent } from '../ui/logo/logo';
+import { InputField } from '../ui/input/input';
 import { RegisterRequest } from '../../models/auth.model';
 
 export function dniValidator() {
@@ -39,7 +40,7 @@ export function dniValidator() {
 @Component({
   selector: 'app-booking',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LogoComponent],
+  imports: [CommonModule, ReactiveFormsModule, LogoComponent, InputField],
   templateUrl: './booking.html',
   styleUrls: ['./booking.css']
 })
@@ -48,6 +49,8 @@ export class Booking implements OnInit {
   private bookingService = inject(BookingService);
   public authService = inject(AuthService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   idEntidad = signal<string | null>(null);
   entidadName = signal<string>('');
@@ -113,11 +116,13 @@ export class Booking implements OnInit {
         this.entidadName.set(entidad.nombre);
         this.bookingForm.get('idEntidad')?.setValue(entidad.id);
         this.isLoadingEntidad.set(false);
+        this.cdr.detectChanges();
         this.loadTramites();
       },
       error: () => {
         this.entidadNotFound.set(true);
         this.isLoadingEntidad.set(false);
+        this.cdr.detectChanges();
       }
     });
   }
@@ -143,7 +148,10 @@ export class Booking implements OnInit {
     const id = this.idEntidad();
     if (!id) return;
     this.bookingService.getTramites(id).subscribe({
-      next: (data: Tramite[]) => this.tramites.set(data),
+      next: (data: Tramite[]) => {
+        this.tramites.set(data);
+        this.cdr.detectChanges();
+      },
       error: (err) => console.error('Error cargando trámites', err)
     });
   }
@@ -160,7 +168,10 @@ export class Booking implements OnInit {
     const idEntidad = this.idEntidad();
     if (idTramite && date && idEntidad) {
       this.bookingService.getSlots(idEntidad, idTramite, date).subscribe({
-        next: (slots) => this.availableSlots.set(slots),
+        next: (slots) => {
+          this.availableSlots.set(slots);
+          this.cdr.detectChanges();
+        },
         error: (err) => console.error('Error cargando huecos', err)
       });
     }
@@ -172,6 +183,7 @@ export class Booking implements OnInit {
 
   setStep(n: number) {
     this.step.set(n);
+    this.cdr.detectChanges();
   }
 
   nextStep() {
@@ -197,7 +209,19 @@ export class Booking implements OnInit {
       next: (res: any) => {
         this.fillFormFromUser(res.user);
         this.isAuthLoading.set(false);
-        this.setAuthMode('guest');
+        
+        const userRole = res.user.idRol;
+        const employeeRoles = [
+          'e51b3a32-1111-4a3b-9a99-b1d5c7f8a121',
+          'e51b3a32-2222-4a3b-9a99-b1d5c7f8a122'
+        ];
+
+        if (employeeRoles.includes(userRole)) {
+          this.router.navigate(['/dashboard-employees']);
+        } else {
+          this.setAuthMode('guest');
+          this.cdr.detectChanges();
+        }
       },
       error: (err: any) => {
         this.authError.set(err.message);
@@ -254,5 +278,6 @@ export class Booking implements OnInit {
     this.selectedTime.set('');
     this.availableSlots.set([]);
     this.step.set(1);
+    this.cdr.detectChanges();
   }
 }

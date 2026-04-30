@@ -30,7 +30,11 @@ export class AppointmentService {
     return this.http.patch<TurnoLlegada>(`${this.apiUrl}/tickets/${idTicket}/attend`, {});
   }
 
-  completeAppointment(idCita: string): Observable<Cita> {
-    return this.http.patch<Cita>(`${this.apiUrl}/appointments/${idCita}`, { estado: 'Realizada' });
+  updateAppointmentStatus(idCita: string, estado: string): Observable<Cita> {
+    return this.http.patch<Cita>(`${this.apiUrl}/appointments/${idCita}`, { estado });
+  }
+
+  createAppointment(appointment: any): Observable<Cita> {
+    return this.http.post<Cita>(`${this.apiUrl}/appointments`, appointment);
   }
 }

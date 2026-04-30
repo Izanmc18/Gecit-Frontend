@@ -1,4 +1,4 @@
-import { Component, Input, forwardRef } from '@angular/core';
+import { Component, Input, forwardRef, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms';
 
@@ -17,12 +17,14 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@a
   styleUrls: ['./input.css']
 })
 export class InputField implements ControlValueAccessor {
+  private cdr = inject(ChangeDetectorRef);
   @Input() label: string = '';
   @Input() type: string = 'text';
   @Input() placeholder: string = '';
   @Input() error: string | null = null;
   @Input() hasIconLeft: boolean = false;
   @Input() hasIconRight: boolean = false;
+  @Input() customClass: string = '';
 
   value: string = '';
   isDisabled: boolean = false;
@@ -37,6 +39,7 @@ export class InputField implements ControlValueAccessor {
 
   togglePasswordVisibility() {
     this.passwordVisible = !this.passwordVisible;
+    this.cdr.detectChanges();
   }
 
   onChange: any = () => {};
@@ -46,11 +49,13 @@ export class InputField implements ControlValueAccessor {
     const val = (event.target as HTMLInputElement).value;
     this.value = val;
     this.onChange(val);
+    this.cdr.detectChanges();
   }
 
   writeValue(value: any): void {
     if (value !== undefined) {
       this.value = value;
+      this.cdr.detectChanges();
     }
   }
 

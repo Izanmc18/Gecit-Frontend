@@ -38,12 +38,18 @@
 }
 
 .generic-input::placeholder {
-  color: #9ca3af;
+  color: #cbd5e1; 
+  font-weight: 400;
 }
 
 .generic-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5); /* var(--primary-color) a mano con opacidad */
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5); 
+}
+
+.generic-input.is-invalid {
+  background-image: none !important;
+  border: 1px solid #ef4444;
 }
 
 .has-icon-left {
@@ -95,3 +101,4 @@
   margin-top: 0.25rem;
   font-weight: 500;
 }
+

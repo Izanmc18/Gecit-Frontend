@@ -1,0 +1,107 @@
+@if (show && cita) {
+  <div class="modal-overlay animate-fade-in" (click)="closeModal()">
+    <div class="modal-card-modern" (click)="$event.stopPropagation()">
+      <div class="modal-header-modern">
+        <h3>Detalle de la Cita</h3>
+        <button class="btn-close-modal" (click)="closeModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body-modern">
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div class="avatar-lg bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 60px; height: 60px;">
+            {{ cita.clienteNombre.charAt(0) }}
+          </div>
+          <div>
+            <h4 class="mb-0 fw-bold">{{ cita.clienteNombre }} {{ cita.clienteApellidos }}</h4>
+            <span class="text-muted">{{ cita.clienteDni }}</span>
+          </div>
+          <div class="ms-auto">
+            <span class="badge rounded-pill px-3 py-2" [ngClass]="getStatusClass(cita.estado)">
+              {{ cita.estado }}
+            </span>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-6">
+            <label class="text-muted small d-block mb-1">TRÁMITE</label>
+            <span class="fw-bold">{{ cita.tramite?.nombreTramite || 'No especificado' }}</span>
+          </div>
+          <div class="col-6">
+            <label class="text-muted small d-block mb-1">FECHA Y HORA</label>
+            <span class="fw-bold">{{ cita.fechaHora | date:'EEEE dd MMMM, HH:mm':'':'es' }}</span>
+          </div>
+          
+          <div class="col-6">
+            <label class="text-muted small d-block mb-1">TELÉFONO</label>
+            <span>{{ cita.clienteTelefono || 'No proporcionado' }}</span>
+          </div>
+          <div class="col-6">
+            <label class="text-muted small d-block mb-1">EMAIL</label>
+            <span>{{ cita.clienteEmail || 'No proporcionado' }}</span>
+          </div>
+
+          <div class="col-12">
+            <label class="text-muted small d-block mb-1">OBSERVACIONES</label>
+            <p class="bg-light p-3 rounded-3 mb-0">{{ cita.observaciones || 'Sin observaciones adicionales.' }}</p>
+          </div>
+          
+          @if (cita.turnoLlegada) {
+            <div class="col-12">
+              <div class="p-3 border border-primary-subtle bg-primary-subtle bg-opacity-10 rounded-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <label class="text-primary small d-block mb-1 fw-bold">TICKET ACTIVO</label>
+                    <span class="fs-4 fw-bold text-primary">{{ cita.turnoLlegada.codigoTicket }}</span>
+                  </div>
+                  <span [ngClass]="getTurnoStatusClass(cita.turnoLlegada.estado)">
+                    {{ cita.turnoLlegada.estado }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+      
+      <div class="modal-footer-modern">
+        <button class="btn btn-light" (click)="closeModal()">Cerrar</button>
+        
+        @if (cita.estado === 'Pendiente') {
+          @if (!cita.turnoLlegada) {
+            <div class="dropdown">
+              <button class="btn btn-primary dropdown-toggle rounded-pill px-4" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Acciones de Cita
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 animate-fade-in">
+                <li><a class="dropdown-item py-2 cursor-pointer" (click)="updateStatus('Realizada')"><i class="bi bi-check2-circle text-success me-2"></i> Marcar como Realizada</a></li>
+                <li><a class="dropdown-item py-2 cursor-pointer" (click)="updateStatus('Cancelada')"><i class="bi bi-x-circle text-danger me-2"></i> Cancelar Cita</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item py-2 cursor-pointer" (click)="updateStatus('No presentado')"><i class="bi bi-person-x text-muted me-2"></i> No presentado</a></li>
+              </ul>
+            </div>
+          } @else if (cita.turnoLlegada.estado === 'En espera') {
+            <button class="btn btn-primary rounded-pill px-4" (click)="onCall()">
+              <i class="bi bi-megaphone me-2"></i> Llamar Cliente
+            </button>
+          } @else if (cita.turnoLlegada.estado === 'Llamado') {
+            <button class="btn btn-success rounded-pill px-4" (click)="onAttend()">
+              <i class="bi bi-person-check me-2"></i> Atender
+            </button>
+          } @else if (cita.turnoLlegada.estado === 'Atendido') {
+            <button class="btn btn-dark rounded-pill px-4" (click)="updateStatus('Realizada')">
+              <i class="bi bi-check-circle me-2"></i> Finalizar
+            </button>
+          }
+        }
+
+        @if (isAdmin) {
+            <div class="ms-2">
+            </div>
+        }
+      </div>
+    </div>
+  </div>
+}

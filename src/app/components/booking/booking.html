@@ -148,20 +148,14 @@
                   <div class="auth-form-container p-4 mb-4 animate-fade-in" [formGroup]="loginForm">
                     <h5 class="fw-bold mb-3 text-center">Accede a tu cuenta</h5>
                     <div class="mb-3">
-                      <input type="email" class="form-control form-control-lg border-2 rounded-3" 
-                             [class.is-invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
-                             placeholder="Email" formControlName="email">
-                      @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
-                        <div class="invalid-feedback">Introduce un email válido.</div>
-                      }
+                      <app-input type="email" customClass="form-control-lg border-2 rounded-3" 
+                             [error]="(loginForm.get('email')?.invalid && loginForm.get('email')?.touched) ? 'Introduce un email válido.' : null"
+                             placeholder="Email" formControlName="email"></app-input>
                     </div>
                     <div class="mb-3">
-                      <input type="password" class="form-control form-control-lg border-2 rounded-3" 
-                             [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
-                             placeholder="Contraseña" formControlName="password">
-                      @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
-                        <div class="invalid-feedback">La contraseña es obligatoria.</div>
-                      }
+                      <app-input type="password" customClass="form-control-lg border-2 rounded-3" 
+                             [error]="(loginForm.get('password')?.invalid && loginForm.get('password')?.touched) ? 'La contraseña es obligatoria.' : null"
+                             placeholder="Contraseña" formControlName="password"></app-input>
                     </div>
                     @if (authError()) {
                       <div class="alert alert-danger py-2 small mb-3">{{ authError() }}</div>
@@ -177,47 +171,35 @@
                     <h5 class="fw-bold mb-3 text-center">Crea tu cuenta de cliente</h5>
                     <div class="row g-2 mb-3">
                       <div class="col-6">
-                        <input type="text" class="form-control border-2 rounded-3" 
-                               [class.is-invalid]="registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched"
-                               placeholder="Nombre" formControlName="nombre">
+                        <app-input type="text" customClass="border-2 rounded-3" 
+                               [error]="(registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched) ? 'Nombre requerido.' : null"
+                               placeholder="Nombre" formControlName="nombre"></app-input>
                       </div>
                       <div class="col-6">
-                        <input type="text" class="form-control border-2 rounded-3" 
-                               [class.is-invalid]="registerForm.get('apellidos')?.invalid && registerForm.get('apellidos')?.touched"
-                               placeholder="Apellidos" formControlName="apellidos">
+                        <app-input type="text" customClass="border-2 rounded-3" 
+                               [error]="(registerForm.get('apellidos')?.invalid && registerForm.get('apellidos')?.touched) ? 'Apellidos requeridos.' : null"
+                               placeholder="Apellidos" formControlName="apellidos"></app-input>
                       </div>
                     </div>
                     <div class="mb-2">
-                      <input type="text" class="form-control border-2 rounded-3" 
-                             [class.is-invalid]="registerForm.get('dni')?.invalid && registerForm.get('dni')?.touched"
-                             placeholder="DNI" formControlName="dni">
-                      @if (registerForm.get('dni')?.invalid && registerForm.get('dni')?.touched) {
-                        <div class="invalid-feedback d-block small">DNI no válido.</div>
-                      }
+                      <app-input type="text" customClass="border-2 rounded-3" 
+                             [error]="(registerForm.get('dni')?.invalid && registerForm.get('dni')?.touched) ? 'DNI no válido.' : null"
+                             placeholder="DNI" formControlName="dni"></app-input>
                     </div>
                     <div class="mb-2">
-                      <input type="email" class="form-control border-2 rounded-3" 
-                             [class.is-invalid]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
-                             placeholder="Email" formControlName="email">
-                      @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
-                        <div class="invalid-feedback d-block small">Email no válido.</div>
-                      }
+                      <app-input type="email" customClass="border-2 rounded-3" 
+                             [error]="(registerForm.get('email')?.invalid && registerForm.get('email')?.touched) ? 'Email no válido.' : null"
+                             placeholder="Email" formControlName="email"></app-input>
                     </div>
                     <div class="mb-2">
-                      <input type="password" class="form-control border-2 rounded-3" 
-                             [class.is-invalid]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
-                             placeholder="Contraseña" formControlName="password">
-                      @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
-                        <div class="invalid-feedback d-block small">Mínimo 6 caracteres.</div>
-                      }
+                      <app-input type="password" customClass="border-2 rounded-3" 
+                             [error]="(registerForm.get('password')?.invalid && registerForm.get('password')?.touched) ? 'Mínimo 6 caracteres.' : null"
+                             placeholder="Contraseña" formControlName="password"></app-input>
                     </div>
                     <div class="mb-3">
-                      <input type="text" class="form-control border-2 rounded-3" 
-                             [class.is-invalid]="registerForm.get('telefono')?.invalid && registerForm.get('telefono')?.touched"
-                             placeholder="Teléfono" formControlName="telefono">
-                      @if (registerForm.get('telefono')?.invalid && registerForm.get('telefono')?.touched) {
-                        <div class="invalid-feedback d-block small">Teléfono no válido.</div>
-                      }
+                      <app-input type="text" customClass="border-2 rounded-3" 
+                             [error]="(registerForm.get('telefono')?.invalid && registerForm.get('telefono')?.touched) ? 'Teléfono no válido.' : null"
+                             placeholder="Teléfono" formControlName="telefono"></app-input>
                     </div>
                     @if (authError()) {
                       <div class="alert alert-danger py-2 small mb-3">{{ authError() }}</div>
@@ -242,33 +224,33 @@
                   <div class="row g-3 mb-4">
                     <div class="col-md-6">
                       <label class="form-label fw-semibold small">Nombre</label>
-                      <input type="text" class="form-control rounded-3 border-2" 
+                      <app-input type="text" customClass="rounded-3 border-2" 
                              formControlName="clienteNombre" placeholder="Tu nombre"
-                             [class.is-invalid]="bookingForm.get('clienteNombre')?.invalid && bookingForm.get('clienteNombre')?.touched">
+                             [error]="(bookingForm.get('clienteNombre')?.invalid && bookingForm.get('clienteNombre')?.touched) ? 'Nombre requerido' : null"></app-input>
                     </div>
                     <div class="col-md-6">
                       <label class="form-label fw-semibold small">Apellidos</label>
-                      <input type="text" class="form-control rounded-3 border-2" 
+                      <app-input type="text" customClass="rounded-3 border-2" 
                              formControlName="clienteApellidos" placeholder="Tus apellidos"
-                             [class.is-invalid]="bookingForm.get('clienteApellidos')?.invalid && bookingForm.get('clienteApellidos')?.touched">
+                             [error]="(bookingForm.get('clienteApellidos')?.invalid && bookingForm.get('clienteApellidos')?.touched) ? 'Apellidos requeridos' : null"></app-input>
                     </div>
                     <div class="col-md-12">
                       <label class="form-label fw-semibold small">DNI / NIE</label>
-                      <input type="text" class="form-control rounded-3 border-2" 
+                      <app-input type="text" customClass="rounded-3 border-2" 
                              formControlName="clienteDni" placeholder="Ej: 12345678A"
-                             [class.is-invalid]="bookingForm.get('clienteDni')?.invalid && bookingForm.get('clienteDni')?.touched">
+                             [error]="(bookingForm.get('clienteDni')?.invalid && bookingForm.get('clienteDni')?.touched) ? 'DNI no válido' : null"></app-input>
                     </div>
                     <div class="col-md-6">
                       <label class="form-label fw-semibold small">Correo Electrónico</label>
-                      <input type="email" class="form-control rounded-3 border-2" 
+                      <app-input type="email" customClass="rounded-3 border-2" 
                              formControlName="clienteEmail" placeholder="correo@ejemplo.com"
-                             [class.is-invalid]="bookingForm.get('clienteEmail')?.invalid && bookingForm.get('clienteEmail')?.touched">
+                             [error]="(bookingForm.get('clienteEmail')?.invalid && bookingForm.get('clienteEmail')?.touched) ? 'Email no válido' : null"></app-input>
                     </div>
                     <div class="col-md-6">
                       <label class="form-label fw-semibold small">Teléfono Móvil</label>
-                      <input type="tel" class="form-control rounded-3 border-2" 
+                      <app-input type="tel" customClass="rounded-3 border-2" 
                              formControlName="clienteTelefono" placeholder="600 000 000"
-                             [class.is-invalid]="bookingForm.get('clienteTelefono')?.invalid && bookingForm.get('clienteTelefono')?.touched">
+                             [error]="(bookingForm.get('clienteTelefono')?.invalid && bookingForm.get('clienteTelefono')?.touched) ? 'Teléfono no válido' : null"></app-input>
                     </div>
                   </div>
 

@@ -18,6 +18,7 @@ export interface User {
   apellidos: string;
   email: string;
   idRol: string;
+  idEntidad: string;
   fotoUrl?: string;
 }
 

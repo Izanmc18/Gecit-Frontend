@@ -7,13 +7,17 @@ import { LogoComponent } from '../ui/logo/logo';
 import { Router } from '@angular/router';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AbsenceService } from '../../services/absence.service';
+import { BookingService } from '../../services/booking.service';
+import { Tramite } from '../../models/booking.model';
+import { InputField } from '../ui/input/input';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { switchMap, tap } from 'rxjs';
+import { switchMap, tap, finalize } from 'rxjs';
+import { AppointmentDetailComponent } from '../ui/appointment-detail/appointment-detail';
 
 @Component({
   selector: 'app-dashboard-employees',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, InputField, AppointmentDetailComponent],
   templateUrl: './dashboard-employees.html',
   styleUrls: ['./dashboard-employees.css']
 })
@@ -21,20 +25,42 @@ export class DashboardEmployees implements OnInit {
   private appointmentService = inject(AppointmentService);
   private absenceService = inject(AbsenceService);
   private authService = inject(AuthService);
+  private bookingService = inject(BookingService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private zone = inject(NgZone);
   private cdr = inject(ChangeDetectorRef);
 
   currentUser = this.authService.currentUser;
+  isAdmin = computed(() => this.currentUser()?.idRol === 'e51b3a32-1111-4a3b-9a99-b1d5c7f8a121');
   
   appointments = signal<Cita[]>([]);
   absences = signal<AbsenceResponse[]>([]);
   isLoading = signal<boolean>(true);
-  today = signal<string>(new Date().toISOString().split('T')[0]);
+  today = signal<string>(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`);
   activeTab = signal<'agenda' | 'calendario' | 'laboral'>('agenda');
   calendarView = signal<'dia' | 'semana' | 'mes'>('semana');
   tipoAusencia = TipoAusencia;
+
+  showCreateModal = signal<boolean>(false);
+  isSavingAppointment = signal<boolean>(false);
+  tramites = signal<Tramite[]>([]);
+  availableSlots = signal<string[]>([]);
+  
+  selectedAppointment = signal<Cita | null>(null);
+  showDetailModal = signal<boolean>(false);
+  
+  appointmentForm = this.fb.group({
+    idTramite: ['', Validators.required],
+    fecha: ['', Validators.required],
+    hora: ['', Validators.required],
+    clienteNombre: ['', [Validators.required, Validators.minLength(2)]],
+    clienteApellidos: ['', [Validators.required, Validators.minLength(2)]],
+    clienteDni: ['', [Validators.required, Validators.pattern(/^[0-9]{8}[A-Z]$/i)]],
+    clienteEmail: ['', [Validators.required, Validators.email]],
+    clienteTelefono: ['', [Validators.required, Validators.pattern(/^[679][0-9]{8}$/)]],
+    observaciones: ['']
+  });
   
   currentMonthDate = signal<Date>(new Date());
   currentWeekStart = signal<Date>(this.getStartOfWeek(new Date()));
@@ -108,28 +134,37 @@ export class DashboardEmployees implements OnInit {
     return d;
   }
 
+  setActiveTab(tab: 'agenda' | 'calendario' | 'laboral') {
+    this.activeTab.set(tab);
+    this.cdr.detectChanges();
+  }
+
   nextWeek() {
     const d = new Date(this.currentWeekStart());
     d.setDate(d.getDate() + 7);
     this.currentWeekStart.set(d);
+    this.cdr.detectChanges();
   }
 
   prevWeek() {
     const d = new Date(this.currentWeekStart());
     d.setDate(d.getDate() - 7);
     this.currentWeekStart.set(d);
+    this.cdr.detectChanges();
   }
 
   nextMonth() {
     const d = new Date(this.currentMonthDate());
     d.setMonth(d.getMonth() + 1);
     this.currentMonthDate.set(d);
+    this.cdr.detectChanges();
   }
 
   prevMonth() {
     const d = new Date(this.currentMonthDate());
     d.setMonth(d.getMonth() - 1);
     this.currentMonthDate.set(d);
+    this.cdr.detectChanges();
   }
 
   isToday(date: Date): boolean {
@@ -178,7 +213,7 @@ export class DashboardEmployees implements OnInit {
     tipo: [TipoAusencia.VACACIONES, Validators.required],
     fechaInicio: ['', Validators.required],
     fechaFin: ['', Validators.required],
-    motivo: ['']
+    motivo: ['', [Validators.required, Validators.minLength(10)]]
   });
 
   stats = computed(() => {
@@ -259,8 +294,15 @@ export class DashboardEmployees implements OnInit {
       this.refreshAbsencesTrigger();
       const user = this.currentUser();
       if (user) {
-        this.absenceService.getMyAbsences(user.id).subscribe(response => {
-          this.zone.run(() => this.absences.set(response.data));
+        const request = this.isAdmin() 
+          ? this.absenceService.getAllAbsences() 
+          : this.absenceService.getMyAbsences(user.id);
+
+        request.subscribe(response => {
+          this.zone.run(() => {
+            this.absences.set(response.data);
+            this.cdr.detectChanges();
+          });
         });
       }
     }, { allowSignalWrites: true });
@@ -279,10 +321,90 @@ export class DashboardEmployees implements OnInit {
   }
 
   ngOnInit() {
+    this.loadTramites();
+  }
+
+  loadTramites() {
+    const user = this.currentUser();
+    if (user) {
+      this.bookingService.getTramites(user.idEntidad).subscribe(data => {
+        this.tramites.set(data);
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  onDateOrTramiteChange() {
+    const { idTramite, fecha } = this.appointmentForm.value;
+    const user = this.currentUser();
+    if (idTramite && fecha && user) {
+      this.bookingService.getSlots(user.idEntidad, idTramite, fecha).subscribe(slots => {
+        this.availableSlots.set(slots);
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  openCreateModal() {
+    this.appointmentForm.reset();
+    this.showCreateModal.set(true);
+    this.cdr.detectChanges();
+  }
+
+  closeCreateModal() {
+    this.showCreateModal.set(false);
+    this.cdr.detectChanges();
+  }
+
+  openDetailModal(cita: Cita) {
+    this.selectedAppointment.set(cita);
+    this.showDetailModal.set(true);
+    this.cdr.detectChanges();
+  }
+
+  closeDetailModal() {
+    this.showDetailModal.set(false);
+    this.selectedAppointment.set(null);
+    this.cdr.detectChanges();
+  }
+
+  onSubmitAppointment() {
+    if (this.appointmentForm.invalid) {
+      this.appointmentForm.markAllAsTouched();
+      return;
+    }
+
+    const user = this.currentUser();
+    if (!user) return;
+
+    this.isSavingAppointment.set(true);
+    this.cdr.detectChanges();
+
+    const formVal = this.appointmentForm.value;
+    const appointmentData = {
+      ...formVal,
+      fechaHora: `${formVal.fecha}T${formVal.hora}:00`,
+      idUsuarioAsignado: user.id,
+      idMesa: 'e51b3a32-1111-4a3b-9a99-b1d5c7f8a111'
+    };
+
+    this.appointmentService.createAppointment(appointmentData)
+      .pipe(finalize(() => {
+        this.isSavingAppointment.set(false);
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
+        next: () => {
+          this.closeCreateModal();
+          this.refreshData();
+        },
+        error: (err) => alert(err.error?.message || 'Error al crear la cita')
+      });
   }
 
   refreshData() {
     this.refreshAppointmentsTrigger.update(n => n + 1);
+    this.cdr.detectChanges();
   }
 
   requestAbsence() {
@@ -294,14 +416,30 @@ export class DashboardEmployees implements OnInit {
         next: () => {
           this.refreshAbsencesTrigger.update(n => n + 1);
           this.absenceForm.reset({ tipo: TipoAusencia.VACACIONES });
+          this.cdr.detectChanges();
         },
         error: (err) => alert(err.error?.message || 'Error al solicitar ausencia')
       });
     }
   }
 
+  approveAbsence(id: string) {
+    this.absenceService.approveAbsence(id).subscribe({
+      next: () => this.refreshAbsencesTrigger.update(n => n + 1),
+      error: (err) => alert(err.error?.message || 'Error al aprobar')
+    });
+  }
+
+  rejectAbsence(id: string) {
+    this.absenceService.rejectAbsence(id).subscribe({
+      next: () => this.refreshAbsencesTrigger.update(n => n + 1),
+      error: (err) => alert(err.error?.message || 'Error al rechazar')
+    });
+  }
+
   setFilter(filter: 'TODAS' | 'PENDIENTES' | 'REALIZADAS') {
     this.filterBy.set(filter);
+    this.cdr.detectChanges();
   }
 
   setSort(field: string) {
@@ -325,8 +463,8 @@ export class DashboardEmployees implements OnInit {
     }
   }
 
-  finishAppointment(cita: Cita) {
-    this.appointmentService.completeAppointment(cita.id).subscribe(() => this.refreshData());
+  updateStatus(cita: Cita, estado: string) {
+    this.appointmentService.updateAppointmentStatus(cita.id, estado).subscribe(() => this.refreshData());
   }
 
   logout() {
@@ -354,7 +492,10 @@ export class DashboardEmployees implements OnInit {
   }
 
   getAppointmentsForDay(date: Date): Cita[] {
-    const dateStr = date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
     return this.filteredAppointments().filter(cita => cita.fechaHora.startsWith(dateStr));
   }
 

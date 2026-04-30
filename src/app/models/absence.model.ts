@@ -17,4 +17,6 @@ export interface AbsenceResponse extends AbsenceRequest {
   id: string;
   estado: 'Pendiente' | 'Aprobada' | 'Rechazada';
   fechaSolicitud: string;
+  usuarioNombre?: string;
+  usuarioEmail?: string;
 }

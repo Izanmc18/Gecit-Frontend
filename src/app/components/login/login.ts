@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -19,6 +19,7 @@ export class Login {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -36,17 +37,32 @@ export class Login {
 
     this.isLoading = true;
     this.errorMessage = '';
+    this.cdr.detectChanges();
 
     const { email, password } = this.loginForm.value;
 
     this.authService.login({ email: email!, password: password! }).subscribe({
-      next: () => {
+      next: (response) => {
         this.isLoading = false;
-        this.router.navigate(['/dashboard-employees']);
+        this.cdr.detectChanges();
+        
+        const userRole = response.user.idRol;
+        const employeeRoles = [
+          'e51b3a32-1111-4a3b-9a99-b1d5c7f8a121', // Admin
+          'e51b3a32-2222-4a3b-9a99-b1d5c7f8a122'  // Empleado
+        ];
+
+        if (employeeRoles.includes(userRole)) {
+          this.router.navigate(['/dashboard-employees']);
+        } else {
+          // Si es cliente o particular, lo llevamos al portal de reservas
+          this.router.navigate(['/booking']);
+        }
       },
       error: (error) => {
         this.errorMessage = error.message;
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
