@@ -1,0 +1,224 @@
+<div class="dashboard-container min-vh-100 pb-5">
+    <app-navbar 
+        [activeTab]="activeTab()" 
+        [navItems]="navItems" 
+        [title]="'GECIT Admin'"
+        (tabChange)="setActiveTab($event)">
+    </app-navbar>
+
+    <div class="main-wrapper" [class.no-padding]="activeTab() === 'configuracion'">
+        <!-- Dashboard Content Switcher -->
+        
+        <!-- 1. RESUMEN TAB -->
+        @if (activeTab() === 'resumen') {
+            <h2 class="section-title">Panel de Control</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon icon-blue"><i class="bi bi-people"></i></div>
+                    <div class="stat-info">
+                        <h3>{{ stats().totalCitas }}</h3>
+                        <p>Citas Totales</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon icon-green"><i class="bi bi-check2-circle"></i></div>
+                    <div class="stat-info">
+                        <h3>{{ stats().realizadas }}</h3>
+                        <p>Completadas</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon icon-purple"><i class="bi bi-person-badge"></i></div>
+                    <div class="stat-info">
+                        <h3>{{ stats().empleadosActivos }}</h3>
+                        <p>Empleados</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon icon-orange"><i class="bi bi-clock-history"></i></div>
+                    <div class="stat-info">
+                        <h3>{{ stats().esperaMedia }} min</h3>
+                        <p>Espera Media</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="chart-container flex-column align-items-stretch">
+                        <h5 class="chart-title mb-4">Volumen de Citas (Últimos 7 días)</h5>
+                        <div style="flex: 1; position: relative;">
+                            <canvas id="volumeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="chart-container flex-column align-items-stretch">
+                        <h5 class="chart-title mb-4">Distribución por Trámites</h5>
+                        <div style="flex: 1; position: relative;">
+                            <canvas id="tramiteChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- 2. AGENDA TAB -->
+        @if (activeTab() === 'agenda') {
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="section-title mb-0">Agenda Global de Hoy</h2>
+                <button (click)="loadTodayAgenda()" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Actualizar
+                </button>
+            </div>
+            
+            <div class="requests-table">
+                @if (todayAppointments().length > 0) {
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Hora</th>
+                                <th>Ciudadano</th>
+                                <th>Trámite</th>
+                                <th>Estado</th>
+                                <th>Mesa / Empleado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (cita of todayAppointments(); track cita.id) {
+                                <tr>
+                                    <td>
+                                        <span class="fw-bold">{{ cita.fechaHora | date:'HH:mm' }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            <span class="fw-bold">{{ cita.clienteNombre }} {{ cita.clienteApellidos }}</span>
+                                            <span class="small text-muted">{{ cita.clienteDni }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">{{ cita.tramite?.nombreTramite }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="status-pill" [class.status-pending]="cita.estado === 'Pendiente'" 
+                                              [class.status-approved]="cita.estado === 'Realizada'">
+                                            {{ cita.estado }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            <span>Mesa {{ cita.mesa?.nombreMesa }}</span>
+                                            <span class="small text-muted">{{ cita.usuarioAsignado?.nombre }}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                } @else {
+                    <div class="chart-container py-5">
+                        <div class="text-center">
+                            <i class="bi bi-calendar-x display-4 d-block mb-3 opacity-25"></i>
+                            <p class="text-muted">No hay citas programadas para el día de hoy.</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- 3. LABORAL TAB -->
+        @if (activeTab() === 'laboral') {
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="section-title mb-0">Gestión de Ausencias y Vacaciones</h2>
+                
+                <div class="d-flex gap-3">
+                    <div class="search-bar-modern" style="min-width: 300px;">
+                        <i class="bi bi-search text-muted me-2"></i>
+                        <input type="text" 
+                               class="form-control form-control-sm border-0" 
+                               placeholder="Buscar empleado..."
+                               [ngModel]="absenceSearch()"
+                               (ngModelChange)="absenceSearch.set($event)">
+                    </div>
+                    
+                    <select class="form-select form-select-sm rounded-pill px-3" 
+                            style="width: 150px;"
+                            [ngModel]="absenceFilter()"
+                            (ngModelChange)="absenceFilter.set($event)">
+                        <option value="all">Todos</option>
+                        <option value="Pendiente">Pendientes</option>
+                        <option value="Aprobada">Aprobadas</option>
+                        <option value="Rechazada">Rechazadas</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="requests-table">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Empleado</th>
+                            <th>Tipo</th>
+                            <th>Periodo</th>
+                            <th>Estado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (abs of filteredAbsences(); track abs.id) {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold me-2" style="width: 32px; height: 32px;">
+                                            {{ abs.usuarioNombre?.charAt(0) }}
+                                        </div>
+                                        <div>
+                                            <span class="d-block fw-bold">{{ abs.usuarioNombre }}</span>
+                                            <span class="small text-muted">{{ abs.usuarioEmail }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="fw-semibold">{{ abs.tipo }}</span></td>
+                                <td>
+                                    <span class="d-block">{{ abs.fechaInicio | date:'dd/MM/yyyy' }}</span>
+                                    <span class="small text-muted">al {{ abs.fechaFin | date:'dd/MM/yyyy' }}</span>
+                                </td>
+                                <td>
+                                    <span class="status-pill" 
+                                          [class.status-pending]="abs.estado === 'Pendiente'"
+                                          [class.status-approved]="abs.estado === 'Aprobada'"
+                                          [class.status-rejected]="abs.estado === 'Rechazada'">
+                                        {{ abs.estado }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    @if (abs.estado === 'Pendiente') {
+                                        <button (click)="approveAbsence(abs.id)" class="btn btn-sm btn-success rounded-pill me-2">Aprobar</button>
+                                        <button (click)="rejectAbsence(abs.id)" class="btn btn-sm btn-outline-danger rounded-pill">Rechazar</button>
+                                    } @else {
+                                        <span class="small text-muted">{{ abs.fechaSolicitud | date:'dd/MM/yyyy' }}</span>
+                                    }
+                                </td>
+                            </tr>
+                        } @empty {
+                            <tr>
+                                <td colspan="5" class="text-center py-5">
+                                    <i class="bi bi-inbox display-4 d-block mb-3 opacity-25"></i>
+                                    <p class="text-muted">No se han encontrado solicitudes que coincidan con los filtros.</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <!-- 4. CONFIGURACION TAB (CANVAS) -->
+        @if (activeTab() === 'configuracion') {
+            <div class="config-card">
+                <app-admin-canvas [idEntidad]="currentUser()?.idEntidad"></app-admin-canvas>
+            </div>
+        }
+    </div>
+</div>

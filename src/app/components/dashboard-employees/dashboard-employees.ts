@@ -13,11 +13,12 @@ import { InputField } from '../ui/input/input';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { switchMap, tap, finalize } from 'rxjs';
 import { AppointmentDetailComponent } from '../ui/appointment-detail/appointment-detail';
+import { NavbarComponent, NavItem } from '../ui/navbar/navbar';
 
 @Component({
   selector: 'app-dashboard-employees',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, InputField, AppointmentDetailComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, InputField, AppointmentDetailComponent, NavbarComponent],
   templateUrl: './dashboard-employees.html',
   styleUrls: ['./dashboard-employees.css']
 })
@@ -38,7 +39,14 @@ export class DashboardEmployees implements OnInit {
   absences = signal<AbsenceResponse[]>([]);
   isLoading = signal<boolean>(true);
   today = signal<string>(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`);
-  activeTab = signal<'agenda' | 'calendario' | 'laboral'>('agenda');
+  activeTab = signal<string>('agenda');
+  
+  navItems: NavItem[] = [
+    { label: 'Mi Agenda', icon: 'bi bi-journal-text', value: 'agenda' },
+    { label: 'Calendario', icon: 'bi bi-calendar3', value: 'calendario' },
+    { label: 'Gestión Laboral', icon: 'bi bi-person-badge', value: 'laboral' }
+  ];
+
   calendarView = signal<'dia' | 'semana' | 'mes'>('semana');
   tipoAusencia = TipoAusencia;
 
@@ -134,7 +142,7 @@ export class DashboardEmployees implements OnInit {
     return d;
   }
 
-  setActiveTab(tab: 'agenda' | 'calendario' | 'laboral') {
+  setActiveTab(tab: string) {
     this.activeTab.set(tab);
     this.cdr.detectChanges();
   }
@@ -192,7 +200,8 @@ export class DashboardEmployees implements OnInit {
       const fechaInicio = start.toISOString().split('T')[0];
       const fechaFin = end.toISOString().split('T')[0];
 
-      return this.appointmentService.getAppointments(user.id, fechaInicio, fechaFin).pipe(
+      const filters = { idUsuarioAsignado: user.id, fechaInicio, fechaFin };
+      return this.appointmentService.getAppointments(filters).pipe(
         tap({
           next: (response) => {
             this.appointments.set(response.data);
@@ -275,7 +284,8 @@ export class DashboardEmployees implements OnInit {
         const fechaInicio = start.toISOString().split('T')[0];
         const fechaFin = end.toISOString().split('T')[0];
 
-        this.appointmentService.getAppointments(user.id, fechaInicio, fechaFin).subscribe({
+        const filters = { idUsuarioAsignado: user.id, fechaInicio, fechaFin };
+        this.appointmentService.getAppointments(filters).subscribe({
           next: (response) => {
             this.zone.run(() => {
               this.appointments.set(response.data);
@@ -460,6 +470,14 @@ export class DashboardEmployees implements OnInit {
   attendClient(cita: Cita) {
     if (cita.turnoLlegada) {
       this.appointmentService.attendTicket(cita.turnoLlegada.id).subscribe(() => this.refreshData());
+    }
+  }
+
+  discardClient(cita: Cita) {
+    if (cita.turnoLlegada) {
+      if (confirm(`¿Estás seguro de descartar el turno de ${cita.clienteNombre}? Se marcará como No Presentado.`)) {
+        this.appointmentService.discardTicket(cita.turnoLlegada.id).subscribe(() => this.refreshData());
+      }
     }
   }
 

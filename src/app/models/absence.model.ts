@@ -13,6 +13,8 @@ export interface AbsenceRequest {
   motivo?: string;
 }
 
+export interface Absence extends AbsenceResponse {}
+
 export interface AbsenceResponse extends AbsenceRequest {
   id: string;
   estado: 'Pendiente' | 'Aprobada' | 'Rechazada';

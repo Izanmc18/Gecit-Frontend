@@ -1,0 +1,67 @@
+<div class="waiting-room-container">
+    <!-- HEADER -->
+    <header class="tv-header">
+        <div class="tv-logo">
+            <img src="media/logo.jpg" alt="GECIT Logo" class="logo-main">
+        </div>
+        <div class="tv-clock">
+            <div class="time">{{ currentTime() | date:'HH:mm' }}</div>
+            <div class="date">{{ getFormattedDate() }}</div>
+        </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="tv-content">
+        <!-- LEFT: CALLING NOW -->
+        <section class="calling-section">
+            <div class="section-header">
+                <h1 class="section-title">
+                    <i class="bi bi-bell"></i> LLAMANDO AHORA
+                </h1>
+                <div class="puestos-badge">
+                    {{ displayData().llamados.length }} Puestos Activos
+                </div>
+            </div>
+
+            <div class="cards-grid">
+                @for (item of displayData().llamados; track item.ticket) {
+                    <div class="ticket-card">
+                        <div class="ticket-label">TICKET</div>
+                        <div class="ticket-number">{{ item.ticket }}</div>
+                        <div class="mesa-label">{{ item.mesa }}</div>
+                    </div>
+                }
+                @if (displayData().llamados.length === 0) {
+                    <div class="no-calls-msg">
+                        <p>No hay turnos siendo llamados en este momento.</p>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- RIGHT: NEXT TURNS -->
+        <aside class="next-turns-section">
+            <div class="sidebar-title">
+                PRÓXIMOS TURNOS
+                <i class="bi bi-arrow-repeat"></i>
+            </div>
+            
+            <div class="turns-list">
+                @for (item of displayData().enEspera; track item.ticket) {
+                    <div class="next-card">
+                        <div class="next-info">
+                            <div class="label">TURNO</div>
+                            <div class="number">{{ item.ticket }}</div>
+                        </div>
+                        <div class="priority-badge priority-normal">
+                            Espera
+                        </div>
+                    </div>
+                }
+                @if (displayData().enEspera.length === 0) {
+                    <p style="color: #94a3b8; text-align: center; margin-top: 2rem;">No hay más turnos en espera.</p>
+                }
+            </div>
+        </aside>
+    </main>
+</div>

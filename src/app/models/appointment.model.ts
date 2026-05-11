@@ -19,9 +19,10 @@ export interface Cita {
   estado: EstadoCita;
   observaciones?: string;
   idUsuarioAsignado: string;
-  usuarioAsignado?: User;
+  usuarioAsignado?: { nombre: string };
+  idMesa: string;
+  mesa?: { nombreMesa: string, numero?: number };
   idTramite: string;
-  tramiteNombre?: string;
   tramite?: { nombreTramite: string };
   turnoLlegada?: TurnoLlegada;
 }

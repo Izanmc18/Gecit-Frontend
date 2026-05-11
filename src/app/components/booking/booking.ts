@@ -130,7 +130,7 @@ export class Booking implements OnInit {
   private checkRole() {
     const user = this.authService.currentUser();
     if (user) {
-      const allowedRoles = ['e51b3a32-3333-4a3b-9a99-b1d5c7f8a123']; // Solo Cliente
+      const allowedRoles = ['e51b3a32-3333-4a3b-9a99-b1d5c7f8a123'];
       if (!allowedRoles.includes(user.idRol)) {
         this.isAuthorized.set(false);
       }

@@ -47,15 +47,22 @@ export class Login {
         this.cdr.detectChanges();
         
         const userRole = response.user.idRol;
-        const employeeRoles = [
-          'e51b3a32-1111-4a3b-9a99-b1d5c7f8a121', // Admin
-          'e51b3a32-2222-4a3b-9a99-b1d5c7f8a122'  // Empleado
-        ];
+        const SUPER_ADMIN_ROLE = 'e51b3a32-0000-4a3b-9a99-b1d5c7f8a120';
+        const ADMIN_ROLE = 'e51b3a32-1111-4a3b-9a99-b1d5c7f8a121';
+        const EMPLEADO_ROLE = 'e51b3a32-2222-4a3b-9a99-b1d5c7f8a122';
 
-        if (employeeRoles.includes(userRole)) {
+        console.log('Login success. Role:', userRole);
+
+        if (userRole === SUPER_ADMIN_ROLE) {
+          this.router.navigate(['/dashboard-super-admin']);
+        } else if (userRole === ADMIN_ROLE) {
+          console.log('Redirecting to Admin Dashboard...');
+          this.router.navigate(['/dashboard-admin']).then(success => {
+            if (!success) console.error('Navigation to /dashboard-admin failed');
+          });
+        } else if (userRole === EMPLEADO_ROLE) {
           this.router.navigate(['/dashboard-employees']);
         } else {
-          // Si es cliente o particular, lo llevamos al portal de reservas
           this.router.navigate(['/booking']);
         }
       },

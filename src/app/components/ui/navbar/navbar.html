@@ -1,0 +1,27 @@
+<nav class="top-nav">
+    <div class="brand">
+        <img src="media/icono.png" alt="GECIT Logo">
+        <span>{{ title }}</span>
+    </div>
+    
+    <div class="nav-links">
+        @for (item of navItems; track item.value) {
+            <div class="nav-item" 
+                 [class.active]="activeTab === item.value" 
+                 (click)="onTabClick(item.value)">
+                <i [class]="item.icon"></i> {{ item.label }}
+            </div>
+        }
+    </div>
+
+    <div class="user-profile">
+        <i class="bi bi-bell" style="font-size: 1.2rem; color: #64748b; cursor: pointer;"></i>
+        <div style="text-align: right;">
+            <div style="font-weight: 800; font-size: 0.85rem;">{{ currentUser()?.nombre }}</div>
+            <div style="font-size: 0.7rem; color: #64748b;">{{ userRoleName }}</div>
+        </div>
+        <button class="btn-logout" (click)="logout()">
+            <i class="bi bi-box-arrow-right"></i>
+        </button>
+    </div>
+</nav>

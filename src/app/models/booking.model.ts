@@ -1,6 +1,8 @@
 export interface Entidad {
   id: string;
   nombre: string;
+  dominio: string;
+  logoUrl?: string;
 }
 
 export interface Tramite {

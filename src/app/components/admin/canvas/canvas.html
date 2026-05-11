@@ -1,0 +1,142 @@
+<div class="canvas-admin-container" [class.is-fullscreen]="isFullscreen()">
+    <!-- Sidebar: Room Selection -->
+    <aside class="canvas-sidebar">
+        <h4 class="fw-bold mb-4">Oficinas / Salas</h4>
+        <div class="rooms-list">
+            @for (room of rooms(); track room.id) {
+                <div class="room-item" 
+                     [class.active]="selectedRoom()?.id === room.id"
+                     (click)="selectRoom(room)">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-door-closed"></i>
+                        <span>{{ room.nombreSala }}</span>
+                    </div>
+                    <small class="d-block text-muted mt-1" [class.text-white-50]="selectedRoom()?.id === room.id">
+                        {{ room.canvasWidth }}x{{ room.canvasHeight }} px
+                    </small>
+                </div>
+            }
+        </div>
+    </aside>
+
+    <!-- Main Editor Area -->
+    <main class="canvas-main">
+        <header class="canvas-toolbar">
+            <div class="toolbar-group d-flex align-items-center">
+                <div class="tool-selector btn-group me-3">
+                    <button class="btn btn-sm" 
+                            [class.btn-primary]="canvasMode() === 'select'"
+                            [class.btn-outline-primary]="canvasMode() !== 'select'"
+                            (click)="setMode('select')" title="Seleccionar">
+                        <i class="bi bi-cursor-fill"></i>
+                    </button>
+                    <button class="btn btn-sm" 
+                            [class.btn-primary]="canvasMode() === 'pan'"
+                            [class.btn-outline-primary]="canvasMode() !== 'pan'"
+                            (click)="setMode('pan')" title="Mover Mapa">
+                        <i class="bi bi-hand-index-thumb-fill"></i>
+                    </button>
+                </div>
+
+                <div class="zoom-controls d-flex align-items-center gap-1 me-3">
+                    <button class="btn-icon-sm" (click)="zoomOut()" title="Zoom Out"><i class="bi bi-dash"></i></button>
+                    <span class="zoom-level text-muted small px-1" style="min-width: 45px; text-align: center;">{{ (scale() * 100).toFixed(0) }}%</span>
+                    <button class="btn-icon-sm" (click)="zoomIn()" title="Zoom In"><i class="bi bi-plus"></i></button>
+                </div>
+
+                <div class="vr me-3"></div>
+
+                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 me-2" (click)="togglePlan()">
+                    <i class="bi" [ngClass]="showPlan() ? 'bi-eye-slash' : 'bi-eye'"></i>
+                    {{ showPlan() ? 'Plano' : 'Plano' }}
+                </button>
+                
+                <button class="btn-icon-sm" (click)="toggleFullscreen()" 
+                        [title]="isFullscreen() ? 'Salir' : 'Pantalla Completa'">
+                    <i class="bi" [class.bi-fullscreen-exit]="isFullscreen()" [class.bi-fullscreen]="!isFullscreen()"></i>
+                </button>
+            </div>
+            
+            <div class="toolbar-group d-flex align-items-center">
+                @if (selectedTableId()) {
+                    <div class="table-actions d-flex align-items-center gap-2 me-3 pe-3 border-end">
+                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3" (click)="deleteSelectedTable()" title="Borrar Mesa">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <button class="btn btn-sm rounded-pill px-3" 
+                                [class.btn-outline-warning]="getSelectedTable()?.estado !== 'Inactiva'"
+                                [class.btn-outline-success]="getSelectedTable()?.estado === 'Inactiva'"
+                                (click)="toggleTableState()"
+                                [title]="getSelectedTable()?.estado === 'Inactiva' ? 'Habilitar Mesa' : 'Deshabilitar Mesa'">
+                            <i class="bi" [class.bi-eye-slash]="getSelectedTable()?.estado !== 'Inactiva'" [class.bi-eye]="getSelectedTable()?.estado === 'Inactiva'"></i>
+                        </button>
+                    </div>
+                }
+
+                <div class="main-actions d-flex gap-2">
+                    <button class="btn btn-primary btn-sm rounded-pill px-3" (click)="addTable()">
+                        <i class="bi bi-plus-lg me-1"></i> Nueva
+                    </button>
+                    <button class="btn btn-success btn-sm rounded-pill px-3" (click)="saveDesign()" [disabled]="isSaving()">
+                        <i class="bi bi-cloud-arrow-up me-1"></i> Guardar
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="canvas-stage-wrapper">
+            <ko-stage #stage [config]="configStage()" (mousedown)="handleStageMouseDown($event)">
+                <ko-layer>
+                    <!-- Background 'Office Area' Rect -->
+                    @if (selectedRoom()) {
+                        <ko-rect [config]="{
+                            x: 0,
+                            y: 0,
+                            width: selectedRoom()?.canvasWidth,
+                            height: selectedRoom()?.canvasHeight,
+                            fill: 'white',
+                            shadowBlur: 10,
+                            shadowOpacity: 0.1,
+                            listening: false
+                        }"></ko-rect>
+                    }
+
+                    
+                    @if (showPlan() && configImage()) {
+                        <ko-image [config]="{ ...configImage(), listening: false }"></ko-image>
+                    }
+                    
+                    @for (table of tables(); track table.id) {
+                        <ko-group [config]="{ 
+                                      id: table.id, 
+                                      name: 'group-' + table.id, 
+                                      draggable: canvasMode() === 'select',
+                                      x: getTableX(table),
+                                      y: getTableY(table)
+                                  }"
+                                  (dragstart)="onDragStart($event)"
+                                  (dragend)="onDragEnd($event, table)"
+                                  (transformend)="onTransformEnd($event, table)"
+                                  (mousedown)="handleTableClick($event, table.id)">
+                            <!-- Table Shape -->
+                            <ko-rect [config]="getTableConfig(table)"></ko-rect>
+                            
+                            <!-- Table Label -->
+                            <ko-text [config]="{ ...getTextConfig(table), listening: false }"></ko-text>
+                        </ko-group>
+                    }
+
+                    
+                    <ko-transformer #transformer [config]="getTransformerConfig()"></ko-transformer>
+                </ko-layer>
+            </ko-stage>
+        </div>
+
+        @if (isSaving()) {
+            <div class="save-indicator">
+                <div class="spinner-border spinner-border-sm" role="status"></div>
+                <span>Guardando cambios...</span>
+            </div>
+        }
+    </main>
+</div>
