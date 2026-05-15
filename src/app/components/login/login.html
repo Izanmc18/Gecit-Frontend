@@ -51,15 +51,10 @@
                 [hasIconLeft]="true"
                 [error]="(loginForm.get('password')?.touched && loginForm.get('password')?.errors?.['minlength']) ? 'Mínimo 6 caracteres' : (loginForm.get('password')?.touched && loginForm.get('password')?.errors?.['required'] ? 'La contraseña es obligatoria' : null)"
               >
-                <a label-action href="#" class="forgot-link">¿OLVIDÓ SU CONTRASEÑA?</a>
                 <svg icon-left class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
               </app-input>
             </div>
 
-            <div class="remember-group">
-              <input id="remember" type="checkbox" class="form-check-input remember-checkbox">
-              <label for="remember" class="remember-label">Mantener sesión iniciada</label>
-            </div>
 
             <app-button
               type="submit"
@@ -69,7 +64,7 @@
               [disabled]="isLoading"
             >
               <div class="btn-content">
-                <span *ngIf="!isLoading">Iniciar sesión en el Panel</span>
+                <span *ngIf="!isLoading">Iniciar sesión</span>
                 <svg *ngIf="!isLoading" class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                 <div *ngIf="isLoading" class="spinner-border spinner-border-sm text-light" role="status">
                   <span class="visually-hidden">Loading...</span>
@@ -78,11 +73,11 @@
             </app-button>
 
             <div class="auth-divider">
-              <span>Authorized Access</span>
+              <span>Portal de Acceso</span>
             </div>
             
             <p class="register-text">
-              ¿No tiene una cuenta? <a href="#" class="register-link font-bold">Regístrese aquí</a>
+              ¿Quieres pedir una cita y no tienes cuenta?<br> <a href="javascript:void(0)" (click)="showRegisterModal.set(true)" class="register-link font-bold">Regístrate aquí</a>
             </p>
 
           </form>
@@ -102,4 +97,132 @@
 
   </div>
 
+</div>
+
+<!-- Modal de Registro -->
+<div *ngIf="showRegisterModal()" class="modal-overlay animate-fade-in" style="z-index: 1050; display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+  <div class="login-card" style="max-width: 500px; width: 90%; background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative;">
+    <button class="btn-close-modal bg-transparent border-0 fs-4 text-muted" (click)="showRegisterModal.set(false)" style="position: absolute; top: 1rem; right: 1.5rem;">&times;</button>
+    
+    <div class="text-center mb-4">
+      <h3 class="fw-bold">Crea tu cuenta</h3>
+      <p class="text-muted small">Únete a GECIT para gestionar tus citas de forma inteligente.</p>
+    </div>
+
+    <div *ngIf="registerError" class="alert alert-danger py-2 px-3 mb-3 rounded-3 small text-center">
+      {{ registerError }}
+    </div>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onRegisterSubmit()">
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <app-input
+            label="Nombre"
+            placeholder="Ej: Juan"
+            formControlName="nombre"
+            [error]="(registerForm.get('nombre')?.touched && registerForm.get('nombre')?.errors?.['required']) ? 'Obligatorio' : null"
+          ></app-input>
+        </div>
+        <div class="col-md-6">
+          <app-input
+            label="Apellidos"
+            placeholder="Ej: Pérez"
+            formControlName="apellidos"
+            [error]="(registerForm.get('apellidos')?.touched && registerForm.get('apellidos')?.errors?.['required']) ? 'Obligatorio' : null"
+          ></app-input>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <app-input
+          label="Email"
+          type="email"
+          placeholder="juan@ejemplo.com"
+          formControlName="email"
+          [hasIconLeft]="true"
+          [error]="(registerForm.get('email')?.touched && registerForm.get('email')?.errors?.['email']) ? 'Email no válido' : (registerForm.get('email')?.touched && registerForm.get('email')?.errors?.['required'] ? 'Obligatorio' : null)"
+        >
+          <svg icon-left class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+        </app-input>
+      </div>
+
+      <div class="mb-4">
+        <app-input
+          label="Contraseña"
+          type="password"
+          placeholder="••••••••"
+          formControlName="password"
+          [hasIconLeft]="true"
+          [error]="(registerForm.get('password')?.touched && registerForm.get('password')?.errors?.['minlength']) ? 'Mínimo 6 caracteres' : (registerForm.get('password')?.touched && registerForm.get('password')?.errors?.['required'] ? 'Obligatorio' : null)"
+        >
+          <svg icon-left class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </app-input>
+      </div>
+
+      <app-button
+        type="submit"
+        variant="primary"
+        customClass="w-100 py-2 block"
+        [disabled]="registerForm.invalid || isRegistering"
+      >
+        <span *ngIf="!isRegistering">Crear cuenta y acceder</span>
+        <div *ngIf="isRegistering" class="spinner-border spinner-border-sm text-light" role="status"></div>
+      </app-button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal de Cambio de Contraseña Obligatorio -->
+<div *ngIf="showPasswordModal()" class="modal-overlay animate-fade-in" style="z-index: 1050; display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+  <div class="login-card" style="max-width: 450px; width: 90%; background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    <div class="text-center mb-4">
+      <div class="avatar-sm bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+        <i class="bi bi-shield-lock-fill"></i>
+      </div>
+      <h3 class="fw-bold">Actualice su contraseña</h3>
+      <p class="text-muted small">Por seguridad, debe cambiar la contraseña temporal asignada en su primer inicio de sesión.</p>
+    </div>
+
+    <div *ngIf="passwordError" class="alert alert-danger py-2 px-3 mb-3 rounded-3 small text-center">
+      {{ passwordError }}
+    </div>
+
+    <form [formGroup]="passwordForm" (ngSubmit)="onPasswordChangeSubmit()">
+      <div class="mb-3">
+        <app-input
+          label="Nueva Contraseña"
+          type="password"
+          placeholder="••••••••"
+          formControlName="newPassword"
+          [hasIconLeft]="true"
+          [error]="(passwordForm.get('newPassword')?.touched && passwordForm.get('newPassword')?.errors?.['minlength']) ? 'Mínimo 6 caracteres' : (passwordForm.get('newPassword')?.touched && passwordForm.get('newPassword')?.errors?.['required'] ? 'Obligatorio' : null)"
+        >
+          <svg icon-left class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </app-input>
+      </div>
+
+      <div class="mb-4">
+        <app-input
+          label="Confirmar Contraseña"
+          type="password"
+          placeholder="••••••••"
+          formControlName="confirmPassword"
+          [hasIconLeft]="true"
+          [error]="(passwordForm.get('confirmPassword')?.touched && passwordForm.get('confirmPassword')?.errors?.['required'] ? 'Obligatorio' : null)"
+        >
+          <svg icon-left class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </app-input>
+      </div>
+
+      <app-button
+        type="submit"
+        variant="primary"
+        customClass="w-100 py-2 block"
+        [disabled]="passwordForm.invalid || isChangingPassword"
+      >
+        <span *ngIf="!isChangingPassword">Guardar nueva contraseña y entrar</span>
+        <div *ngIf="isChangingPassword" class="spinner-border spinner-border-sm text-light" role="status"></div>
+      </app-button>
+    </form>
+  </div>
 </div>

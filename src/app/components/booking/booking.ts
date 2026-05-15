@@ -59,6 +59,7 @@ export class Booking implements OnInit {
 
   bookingForm = this.fb.group({
     idEntidad: ['', Validators.required],
+    idSala: ['', Validators.required],
     idTramite: ['', Validators.required],
     clienteNombre: ['', Validators.required],
     clienteApellidos: ['', Validators.required],
@@ -82,9 +83,12 @@ export class Booking implements OnInit {
   });
 
   tramites = signal<Tramite[]>([]);
+  salas = signal<any[]>([]);
   availableSlots = signal<string[]>([]);
   selectedDate = signal<string>('');
   selectedTime = signal<string>('');
+  selectedTramiteName = signal<string>('');
+  bookingError = signal<string>('');
   today = new Date().toISOString().split('T')[0];
   step = signal<number>(1);
   authMode = signal<'guest' | 'login' | 'register'>('guest');
@@ -118,6 +122,7 @@ export class Booking implements OnInit {
         this.isLoadingEntidad.set(false);
         this.cdr.detectChanges();
         this.loadTramites();
+        this.loadSalas();
       },
       error: () => {
         this.entidadNotFound.set(true);
@@ -156,6 +161,21 @@ export class Booking implements OnInit {
     });
   }
 
+  loadSalas() {
+    const id = this.idEntidad();
+    if (!id) return;
+    this.bookingService.getSalas(id).subscribe({
+      next: (data) => {
+        this.salas.set(data);
+        if (data.length === 1) {
+          this.bookingForm.get('idSala')?.setValue(data[0].id);
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error cargando salas', err)
+    });
+  }
+
   onDateSelected(date: string) {
     this.selectedDate.set(date);
     this.selectedTime.set('');
@@ -166,8 +186,9 @@ export class Booking implements OnInit {
     const idTramite = this.bookingForm.get('idTramite')?.value;
     const date = this.selectedDate();
     const idEntidad = this.idEntidad();
+    const idSala = this.bookingForm.get('idSala')?.value;
     if (idTramite && date && idEntidad) {
-      this.bookingService.getSlots(idEntidad, idTramite, date).subscribe({
+      this.bookingService.getSlots(idEntidad, idTramite, date, idSala ?? undefined).subscribe({
         next: (slots) => {
           this.availableSlots.set(slots);
           this.cdr.detectChanges();
@@ -188,7 +209,7 @@ export class Booking implements OnInit {
 
   nextStep() {
     const currentStep = this.step();
-    if (currentStep === 1 && this.bookingForm.get('idTramite')?.valid) {
+    if (currentStep === 1 && this.bookingForm.get('idTramite')?.valid && this.bookingForm.get('idSala')?.valid) {
       this.setStep(2);
     } else if (currentStep === 2 && this.selectedDate() && this.selectedTime()) {
       this.setStep(3);
@@ -258,9 +279,40 @@ export class Booking implements OnInit {
     });
   }
 
+  isSubmitting = signal<boolean>(false);
+
   submitBooking() {
     if (this.bookingForm.valid && this.selectedDate() && this.selectedTime()) {
-      this.step.set(4);
+      this.isSubmitting.set(true);
+      this.bookingError.set('');
+      const formVal = this.bookingForm.value;
+      
+      const appointmentData = {
+        clienteNombre: formVal.clienteNombre,
+        clienteApellidos: formVal.clienteApellidos,
+        clienteDni: formVal.clienteDni,
+        clienteEmail: formVal.clienteEmail,
+        clienteTelefono: formVal.clienteTelefono,
+        idSala: formVal.idSala,
+        idTramite: formVal.idTramite,
+        fechaHora: `${this.selectedDate()}T${this.selectedTime()}:00`
+      };
+
+      const tramite = this.tramites().find(t => t.id === formVal.idTramite);
+      this.selectedTramiteName.set(tramite?.nombreTramite ?? 'Trámite seleccionado');
+
+      this.bookingService.createAppointment(appointmentData).subscribe({
+        next: () => {
+          this.isSubmitting.set(false);
+          this.step.set(4);
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          this.bookingError.set('Hubo un error al confirmar la cita. Por favor, inténtalo de nuevo.');
+          console.error('Error creando cita:', err);
+        }
+      });
     }
   }
 

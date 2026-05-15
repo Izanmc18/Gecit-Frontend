@@ -15,31 +15,69 @@
             
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-icon icon-blue"><i class="bi bi-people"></i></div>
+                    <div class="stat-icon icon-blue"><i class="bi bi-calendar-check"></i></div>
                     <div class="stat-info">
                         <h3>{{ stats().totalCitas }}</h3>
                         <p>Citas Totales</p>
+                        <div class="d-flex align-items-center gap-1" *ngIf="stats().hoy">
+                            <i class="bi" [ngClass]="stats().hoy.tendencia >= 0 ? 'bi-graph-up text-success' : 'bi-graph-down text-danger'"></i>
+                            <small [ngClass]="stats().hoy.tendencia >= 0 ? 'text-success' : 'text-danger'" class="fw-bold">
+                                {{ stats().hoy.tendencia > 0 ? '+' : '' }}{{ stats().hoy.tendencia }}%
+                            </small>
+                        </div>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon icon-green"><i class="bi bi-check2-circle"></i></div>
+                    <div class="stat-icon icon-green"><i class="bi bi-check2-all"></i></div>
                     <div class="stat-info">
                         <h3>{{ stats().realizadas }}</h3>
                         <p>Completadas</p>
+                        <small class="text-success fw-bold" *ngIf="stats().hoy">Hoy: {{ stats().hoy.realizadas }}</small>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon icon-purple"><i class="bi bi-person-badge"></i></div>
+                    <div class="stat-icon icon-purple"><i class="bi bi-people"></i></div>
                     <div class="stat-info">
                         <h3>{{ stats().empleadosActivos }}</h3>
-                        <p>Empleados</p>
+                        <p>Staff Activo</p>
+                        <small class="text-muted">En servicio hoy</small>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon icon-orange"><i class="bi bi-clock-history"></i></div>
+                    <div class="stat-icon icon-orange"><i class="bi bi-hourglass-split"></i></div>
                     <div class="stat-info">
                         <h3>{{ stats().esperaMedia }} min</h3>
                         <p>Espera Media</p>
+                        <span class="badge rounded-pill bg-success-subtle text-success small" style="font-size: 0.6rem;">ÓPTIMO</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumen de Hoy -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0">Actividad del {{ today | date:"d 'de' MMMM" }}</h5>
+                        <span class="badge bg-primary rounded-pill px-3">{{ (stats().hoy?.realizadas / stats().hoy?.total * 100 || 0).toFixed(0) }}% completado</span>
+                    </div>
+                    <div class="progress rounded-pill" style="height: 10px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                             role="progressbar" 
+                             [style.width.%]="stats().hoy?.realizadas / stats().hoy?.total * 100 || 0"></div>
+                    </div>
+                    <div class="row mt-3 text-center">
+                        <div class="col border-end">
+                            <span class="d-block text-muted small">Pendientes</span>
+                            <span class="fw-bold h5 mb-0">{{ stats().hoy?.pendientes || 0 }}</span>
+                        </div>
+                        <div class="col border-end">
+                            <span class="d-block text-muted small">Realizadas</span>
+                            <span class="fw-bold h5 mb-0 text-success">{{ stats().hoy?.realizadas || 0 }}</span>
+                        </div>
+                        <div class="col">
+                            <span class="d-block text-muted small">Total Hoy</span>
+                            <span class="fw-bold h5 mb-0 text-primary">{{ stats().hoy?.total || 0 }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -66,96 +104,178 @@
 
         <!-- 2. AGENDA TAB -->
         @if (activeTab() === 'agenda') {
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="section-title mb-0">Agenda Global de Hoy</h2>
-                <button (click)="loadTodayAgenda()" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-arrow-clockwise me-2"></i>Actualizar
-                </button>
+            <div class="header-actions">
+                <h1 class="section-title">Agenda Global de Hoy</h1>
             </div>
-            
-            <div class="requests-table">
-                @if (todayAppointments().length > 0) {
-                    <table class="table mb-0">
-                        <thead>
+
+            <!-- FILTERS BAR (AGENDA) -->
+            <div class="filters-bar-agenda">
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text" [value]="agendaSearch()" (input)="agendaSearch.set($any($event.target).value); agendaPage.set(1)" placeholder="Buscar por nombre o DNI del ciudadano...">
+                </div>
+                
+                <div class="filter-group">
+                    <select class="filter-select" (change)="agendaTramiteFilter.set($any($event.target).value); agendaPage.set(1)">
+                        <option value="all">Todos los Trámites</option>
+                        @for (comp of competencias(); track comp.id) {
+                            <option [value]="comp.nombre">{{ comp.nombre }}</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-section-modern">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Ciudadano</th>
+                            <th>Trámite</th>
+                            <th>Estado</th>
+                            <th>Mesa / Empleado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (cita of paginatedAgenda(); track cita.id) {
                             <tr>
-                                <th>Hora</th>
-                                <th>Ciudadano</th>
-                                <th>Trámite</th>
-                                <th>Estado</th>
-                                <th>Mesa / Empleado</th>
+                                <td>
+                                    <span class="fw-bold">{{ cita.fechaHora | date:'HH:mm' }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-bold">{{ cita.clienteNombre }} {{ cita.clienteApellidos }}</span>
+                                        <span class="small text-muted">{{ cita.clienteDni }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">{{ getTramiteNombre(cita) }}</span>
+                                </td>
+                                <td>
+                                    <span class="status-pill" [class]="getStatusClass(cita.estado)">
+                                        {{ cita.estado }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span>Mesa {{ cita.mesa?.nombreMesa || '?' }}</span>
+                                        <span class="small text-muted">{{ cita.usuarioAsignado?.nombre || 'Sin asignar' }}</span>
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @for (cita of todayAppointments(); track cita.id) {
-                                <tr>
-                                    <td>
-                                        <span class="fw-bold">{{ cita.fechaHora | date:'HH:mm' }}</span>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex flex-column">
-                                            <span class="fw-bold">{{ cita.clienteNombre }} {{ cita.clienteApellidos }}</span>
-                                            <span class="small text-muted">{{ cita.clienteDni }}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-light text-dark border">{{ cita.tramite?.nombreTramite }}</span>
-                                    </td>
-                                    <td>
-                                        <span class="status-pill" [class.status-pending]="cita.estado === 'Pendiente'" 
-                                              [class.status-approved]="cita.estado === 'Realizada'">
-                                            {{ cita.estado }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex flex-column">
-                                            <span>Mesa {{ cita.mesa?.nombreMesa }}</span>
-                                            <span class="small text-muted">{{ cita.usuarioAsignado?.nombre }}</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                } @else {
-                    <div class="chart-container py-5">
-                        <div class="text-center">
-                            <i class="bi bi-calendar-x display-4 d-block mb-3 opacity-25"></i>
-                            <p class="text-muted">No hay citas programadas para el día de hoy.</p>
+                        }
+                        @if (paginatedAgenda().length === 0) {
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="bi bi-calendar-x display-6 d-block mb-2"></i>
+                                    No hay citas registradas para hoy con estos filtros.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <!-- PAGINATION FOOTER (AGENDA) -->
+                <div class="pagination-footer-agenda">
+                    <div class="page-info">
+                        Mostrando {{ paginatedAgenda().length }} de {{ filteredAgenda().length }} citas
+                    </div>
+                    
+                    <div class="pagination-actions">
+                        <div class="page-size">
+                            <span>Mostrar:</span>
+                            <select (change)="agendaPageSize.set($any($event.target).value); agendaPage.set(1)">
+                                <option [value]="5">5</option>
+                                <option [value]="10">10</option>
+                                <option [value]="20">20</option>
+                            </select>
+                        </div>
+                        
+                        <div class="page-nav">
+                            <button class="nav-btn-agenda" [disabled]="agendaPage() === 1" (click)="agendaPage.set(agendaPage() - 1)">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <span class="page-num">Página {{ agendaPage() }} de {{ agendaTotalPages() || 1 }}</span>
+                            <button class="nav-btn-agenda" [disabled]="agendaPage() === agendaTotalPages() || agendaTotalPages() === 0" (click)="agendaPage.set(agendaPage() + 1)">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
                         </div>
                     </div>
-                }
+                </div>
             </div>
         }
 
         <!-- 3. LABORAL TAB -->
         @if (activeTab() === 'laboral') {
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="section-title mb-0">Gestión de Ausencias y Vacaciones</h2>
-                
+                <div class="d-flex align-items-center gap-4">
+                    <h2 class="section-title mb-0">Gestión de Personal</h2>
+                    <ul class="nav nav-pills bg-light rounded-pill p-1 shadow-sm" style="border: 1px solid #e2e8f0;">
+                        <li class="nav-item">
+                            <button class="nav-link rounded-pill px-4 fw-semibold border-0" 
+                                    [class.active]="activePersonalTab() === 'ausencias'" 
+                                    [class.bg-white]="activePersonalTab() === 'ausencias'"
+                                    [class.text-dark]="activePersonalTab() === 'ausencias'"
+                                    [class.shadow-sm]="activePersonalTab() === 'ausencias'"
+                                    [class.text-muted]="activePersonalTab() !== 'ausencias'"
+                                    (click)="activePersonalTab.set('ausencias')">
+                                Ausencias
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link rounded-pill px-4 fw-semibold border-0" 
+                                    [class.active]="activePersonalTab() === 'plantilla'" 
+                                    [class.bg-white]="activePersonalTab() === 'plantilla'"
+                                    [class.text-dark]="activePersonalTab() === 'plantilla'"
+                                    [class.shadow-sm]="activePersonalTab() === 'plantilla'"
+                                    [class.text-muted]="activePersonalTab() !== 'plantilla'"
+                                    (click)="activePersonalTab.set('plantilla')">
+                                Plantilla
+                            </button>
+                        </li>
+                    </ul>
+                </div>
                 <div class="d-flex gap-3">
-                    <div class="search-bar-modern" style="min-width: 300px;">
+                    <div class="search-bar-modern" style="min-width: 250px;">
                         <i class="bi bi-search text-muted me-2"></i>
                         <input type="text" 
-                               class="form-control form-control-sm border-0" 
+                               class="form-control form-control-sm border-0 bg-transparent" 
                                placeholder="Buscar empleado..."
                                [ngModel]="absenceSearch()"
                                (ngModelChange)="absenceSearch.set($event)">
                     </div>
                     
-                    <select class="form-select form-select-sm rounded-pill px-3" 
-                            style="width: 150px;"
-                            [ngModel]="absenceFilter()"
-                            (ngModelChange)="absenceFilter.set($event)">
-                        <option value="all">Todos</option>
-                        <option value="Pendiente">Pendientes</option>
-                        <option value="Aprobada">Aprobadas</option>
-                        <option value="Rechazada">Rechazadas</option>
-                    </select>
+                    @if (activePersonalTab() === 'ausencias') {
+                        <select class="form-select form-select-sm rounded-pill px-3" 
+                                style="width: 140px;"
+                                [ngModel]="absenceFilter()"
+                                (ngModelChange)="absenceFilter.set($event)">
+                            <option value="all">Todos</option>
+                            <option value="Pendiente">Pendientes</option>
+                            <option value="Aprobada">Aprobadas</option>
+                            <option value="Rechazada">Rechazadas</option>
+                        </select>
+                    } @else {
+                        <select class="form-select form-select-sm rounded-pill px-3" 
+                                style="width: 140px;"
+                                [ngModel]="employeeFilter()"
+                                (ngModelChange)="employeeFilter.set($event)">
+                            <option value="all">Roles</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Empleado">Empleado</option>
+                            <option value="Cliente">Cliente</option>
+                        </select>
+                    }
+
+                    <button class="btn btn-primary btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-2" (click)="openNewEmployeeModal()">
+                        <i class="bi bi-person-plus-fill"></i> Nuevo Empleado
+                    </button>
                 </div>
             </div>
 
-            <div class="requests-table">
-                <table class="table mb-0">
+            @if (activePersonalTab() === 'ausencias') {
+                <div class="requests-table">
+                    <table class="table mb-0">
                     <thead>
                         <tr>
                             <th>Empleado</th>
@@ -166,7 +286,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @for (abs of filteredAbsences(); track abs.id) {
+                        @for (abs of paginatedAbsences(); track abs.id) {
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
@@ -212,6 +332,151 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Ausencias Pagination -->
+            <div class="d-flex justify-content-between align-items-center mt-3 px-3">
+                <div class="d-flex align-items-center gap-3">
+                    <small class="text-muted">Mostrando {{ paginatedAbsences().length }} de {{ filteredAbsences().length }} solicitudes</small>
+                    <div class="d-flex align-items-center gap-2">
+                        <small class="text-muted">Ver:</small>
+                        <select class="form-select form-select-sm rounded-pill py-0 px-2" style="width: 65px; height: 25px;" (change)="onPageSizeChange('absence', $event)">
+                            <option value="5" [selected]="absencePageSize() === 5">5</option>
+                            <option value="10" [selected]="absencePageSize() === 10">10</option>
+                            <option value="20" [selected]="absencePageSize() === 20">20</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pagination-controls d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-1">
+                        <button class="btn btn-icon-sm" (click)="setAbsencePage(absencePage() - 1)" [disabled]="absencePage() === 1">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        
+                        <div class="d-flex align-items-center gap-2 mx-2">
+                            <span class="small text-muted">Página</span>
+                            <input type="number" class="form-control form-control-sm text-center p-0" 
+                                   style="width: 40px; height: 25px; border-radius: 5px;" 
+                                   [value]="absencePage()"
+                                   (change)="onJumpPage('absence', $event)"
+                                   min="1" [max]="absenceTotalPages()">
+                            <span class="small text-muted">de {{ absenceTotalPages() || 1 }}</span>
+                        </div>
+
+                        <button class="btn btn-icon-sm" (click)="setAbsencePage(absencePage() + 1)" [disabled]="absencePage() >= absenceTotalPages()">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            }
+
+            @if (activePersonalTab() === 'plantilla') {
+            <div class="requests-table">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Empleado</th>
+                            <th>Email</th>
+                            <th>Rol</th>
+                            <th>Puesto / Mesa</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (emp of paginatedEmployees(); track emp.id) {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center fw-bold me-2" style="width: 32px; height: 32px;">
+                                            {{ emp.nombre?.charAt(0) }}
+                                        </div>
+                                        <div>
+                                            <span class="d-block fw-bold">{{ emp.nombre }} {{ emp.apellidos }}</span>
+                                            @if (emp.dni) {
+                                                <span class="small text-muted">DNI: {{ emp.dni }}</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="text-muted">{{ emp.email }}</span></td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">{{ emp.rol || 'Empleado' }}</span>
+                                </td>
+                                <td>
+                                    @let assignment = getEmployeeAssignment(emp.id);
+                                    @if (assignment) {
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="desk-indicator bg-primary"></div>
+                                            <span class="fw-semibold text-primary">
+                                                {{ getMesaName(assignment) }}
+                                            </span>
+                                            <small class="text-muted">({{ assignment.turno }})</small>
+                                        </div>
+                                    } @else {
+                                        <span class="text-muted italic small">Sin asignar hoy</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" (click)="openEditEmployeeModal(emp)">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3" (click)="deleteEmployee(emp)">
+                                            <i class="bi bi-trash"></i> Borrar
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        } @empty {
+                            <tr>
+                                <td colspan="4" class="text-center py-5">
+                                    <i class="bi bi-people display-4 d-block mb-3 opacity-25"></i>
+                                    <p class="text-muted">No hay empleados registrados en la plantilla.</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Plantilla Pagination -->
+            <div class="d-flex justify-content-between align-items-center mt-3 px-3">
+                <div class="d-flex align-items-center gap-3">
+                    <small class="text-muted">Mostrando {{ paginatedEmployees().length }} de {{ filteredEmployees().length }} empleados</small>
+                    <div class="d-flex align-items-center gap-2">
+                        <small class="text-muted">Ver:</small>
+                        <select class="form-select form-select-sm rounded-pill py-0 px-2" style="width: 65px; height: 25px;" (change)="onPageSizeChange('employee', $event)">
+                            <option value="5" [selected]="employeePageSize() === 5">5</option>
+                            <option value="10" [selected]="employeePageSize() === 10">10</option>
+                            <option value="20" [selected]="employeePageSize() === 20">20</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pagination-controls d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-1">
+                        <button class="btn btn-icon-sm" (click)="setEmployeePage(employeePage() - 1)" [disabled]="employeePage() === 1">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        
+                        <div class="d-flex align-items-center gap-2 mx-2">
+                            <span class="small text-muted">Página</span>
+                            <input type="number" class="form-control form-control-sm text-center p-0" 
+                                   style="width: 40px; height: 25px; border-radius: 5px;" 
+                                   [value]="employeePage()"
+                                   (change)="onJumpPage('employee', $event)"
+                                   min="1" [max]="employeeTotalPages()">
+                            <span class="small text-muted">de {{ employeeTotalPages() || 1 }}</span>
+                        </div>
+
+                        <button class="btn btn-icon-sm" (click)="setEmployeePage(employeePage() + 1)" [disabled]="employeePage() >= employeeTotalPages()">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            }
         }
 
         <!-- 4. CONFIGURACION TAB (CANVAS) -->
@@ -222,3 +487,101 @@
         }
     </div>
 </div>
+
+
+@if (showEmployeeModal()) {
+<div class="modal-overlay animate-fade-in" style="z-index: 1050; display: flex;">
+    <div class="modal-card-modern" style="width: 500px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+        <div class="modal-header-modern p-4 border-bottom d-flex justify-content-between align-items-center">
+            <h3 class="fw-bold mb-0 text-dark fs-5">{{ editingEmployeeId() ? 'Editar Empleado' : 'Alta de Nuevo Empleado' }}</h3>
+            <button class="btn-close-modal bg-transparent border-0 fs-4 text-muted" (click)="closeEmployeeModal()">&times;</button>
+        </div>
+        
+        <div class="modal-body-modern p-4">
+            @if (employeeError()) {
+                <div class="alert alert-danger py-2 px-3 mb-4 rounded-3 small d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span>{{ employeeError() }}</span>
+                </div>
+            }
+
+            <form [formGroup]="employeeForm" (ngSubmit)="saveEmployee()">
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-muted">Nombre</label>
+                        <input type="text" class="form-control rounded-3" formControlName="nombre" placeholder="Ej: Laura">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold text-muted">Apellidos</label>
+                        <input type="text" class="form-control rounded-3" formControlName="apellidos" placeholder="Ej: García">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Correo Electrónico</label>
+                    <input type="email" class="form-control rounded-3" formControlName="email" placeholder="empleado@gecit.com">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Competencias (Trámites permitidos)</label>
+                    <select multiple class="form-select rounded-3 shadow-sm border-0 bg-light" formControlName="competenciasIds" style="height: 120px;">
+                        @for (comp of competencias(); track comp.id) {
+                            <option [value]="comp.id" class="p-2 border-bottom border-white">{{ comp.nombreCompetencia || comp.nombre }}</option>
+                        }
+                    </select>
+                    <div class="form-text small text-muted mt-1"><i class="bi bi-info-circle me-1"></i> Usa Ctrl/Cmd para seleccionar múltiples opciones. Si no seleccionas nada, no podrá atender citas especializadas.</div>
+                </div>
+
+                <div class="mb-4">
+                    <app-input
+                        label="Contraseña {{ editingEmployeeId() ? '(Opcional)' : 'Temporal' }}"
+                        type="password"
+                        formControlName="password"
+                        placeholder="{{ editingEmployeeId() ? 'Dejar en blanco para no cambiar' : 'Mínimo 6 caracteres' }}"
+                        [hasIconLeft]="true"
+                    >
+                        <i icon-left class="bi bi-shield-lock"></i>
+                    </app-input>
+                    <div class="form-text small text-muted mt-1">
+                        <i class="bi bi-info-circle me-1"></i> {{ editingEmployeeId() ? 'Si desea cambiar la contraseña del empleado, introdúzcala aquí.' : 'Esta es la contraseña inicial. El empleado podrá cambiarla después.' }}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold" (click)="closeEmployeeModal()" [disabled]="isSavingEmployee()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold" [disabled]="employeeForm.invalid || isSavingEmployee()">
+                        @if (isSavingEmployee()) {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Guardando...
+                        } @else {
+                            {{ editingEmployeeId() ? 'Actualizar Empleado' : 'Crear Empleado' }}
+                        }
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+}
+
+<!-- Modal de Confirmación de Borrado -->
+@if (showDeleteModal()) {
+<div class="modal-overlay animate-fade-in" style="z-index: 1100; display: flex;">
+    <div class="modal-card-modern" style="width: 400px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+        <div class="p-4 text-center">
+            <div class="avatar-lg bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px; font-size: 1.8rem;">
+                <i class="bi bi-exclamation-octagon"></i>
+            </div>
+            <h3 class="fw-bold text-dark fs-5">¿Estás seguro?</h3>
+            <p class="text-muted small">
+                Estás a punto de eliminar a <strong>{{ employeeToDelete()?.nombre }} {{ employeeToDelete()?.apellidos }}</strong>. 
+                Esta acción no se puede deshacer.
+            </p>
+        </div>
+        
+        <div class="p-4 bg-light rounded-bottom-20 d-flex gap-2 justify-content-center">
+            <button class="btn btn-light rounded-pill px-4 fw-semibold" (click)="cancelDelete()">Cancelar</button>
+            <button class="btn btn-danger rounded-pill px-4 fw-bold" (click)="confirmDelete()">Eliminar Empleado</button>
+        </div>
+    </div>
+</div>
+}

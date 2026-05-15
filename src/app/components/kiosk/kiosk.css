@@ -1,0 +1,276 @@
+.kiosk-container {
+    min-height: 100vh;
+    background: #f1f5f9;
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 30px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.kiosk-card {
+    background: white;
+    width: 100%;
+    max-width: 1000px;
+    min-height: 600px;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    overflow: hidden;
+    position: relative;
+}
+
+/* SECCIÓN IZQUIERDA */
+.kiosk-main {
+    flex: 1.2;
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+}
+
+.kiosk-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 4rem;
+}
+
+.brand-text {
+    font-weight: 800;
+    font-size: 1.25rem;
+    color: #1e40af;
+    letter-spacing: 0.05em;
+}
+
+.kiosk-welcome h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+}
+
+.highlight {
+    color: #2563eb;
+    display: block;
+}
+
+.subtitle {
+    color: #64748b;
+    font-size: 1.25rem;
+    margin-bottom: 3rem;
+}
+
+/* INPUT DNI */
+.dni-input-group {
+    margin-bottom: 2.5rem;
+}
+
+.dni-input-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 1rem;
+    letter-spacing: 0.1em;
+}
+
+.input-wrapper {
+    position: relative;
+    background: #f8fafc;
+    border: 2px solid transparent;
+    border-radius: 16px;
+    transition: all 0.3s ease;
+}
+
+.input-wrapper.error {
+    border-color: #ef4444;
+    background: #fef2f2;
+}
+
+.input-wrapper input {
+    width: 100%;
+    padding: 1.5rem 2rem;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    background: transparent;
+    border: none;
+    outline: none;
+    letter-spacing: 0.05em;
+}
+
+.input-icon {
+    position: absolute;
+    right: 2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.75rem;
+    color: #94a3b8;
+}
+
+.error-text {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+.btn-confirm {
+    width: 100%;
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 1.25rem;
+    border-radius: 16px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+}
+
+.btn-confirm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.4);
+    background: #1d4ed8;
+}
+
+.btn-confirm:active {
+    transform: scale(0.98);
+}
+
+/* SECCIÓN DERECHA: TECLADO */
+.kiosk-keypad-container {
+    flex: 1;
+    background: rgba(248, 250, 252, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    border-left: 1px solid #e2e8f0;
+}
+
+.keypad-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    max-width: 360px;
+}
+
+.keys-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.keys-grid.alpha-mode {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+}
+
+.key-btn {
+    aspect-ratio: 1;
+    border: none;
+    background: #f8fafc;
+    border-radius: 16px;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.keys-grid.alpha-mode .key-btn {
+    font-size: 1.25rem;
+}
+
+.key-btn:hover {
+    background: #f1f5f9;
+    color: #2563eb;
+    transform: scale(1.05);
+}
+
+.key-btn:active {
+    transform: scale(0.95);
+    background: #e2e8f0;
+}
+
+.mode-btn {
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 1.1rem !important;
+}
+
+.mode-btn.active {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.delete-btn {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.delete-btn:hover {
+    background: #fecaca;
+    color: #dc2626;
+}
+
+
+
+.dot {
+    color: #cbd5e1;
+}
+
+/* VISTA DE ÉXITO */
+.success-view {
+    text-align: center;
+    animation: fadeIn 0.5s ease;
+}
+
+.success-icon {
+    font-size: 5rem;
+    color: #10b981;
+    margin-bottom: 2rem;
+}
+
+.success-view h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.btn-confirm.outline {
+    background: transparent;
+    border: 2px solid #e2e8f0;
+    color: #64748b;
+    box-shadow: none;
+    margin-top: 2rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+    .kiosk-card {
+        flex-direction: column;
+        max-width: 500px;
+    }
+    .kiosk-keypad-container {
+        border-left: none;
+        border-top: 1px solid #e2e8f0;
+    }
+    .kiosk-welcome h1 {
+        font-size: 2.5rem;
+    }
+}

@@ -19,10 +19,14 @@ export interface User {
   email: string;
   idRol: string;
   idEntidad: string;
+  dni?: string;
+  telefono?: string;
+  rol?: any;
   fotoUrl?: string;
 }
 
 export interface LoginResponse {
   token: string;
   user: User;
+  requirePasswordChange?: boolean;
 }

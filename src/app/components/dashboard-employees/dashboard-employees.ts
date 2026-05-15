@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, NgZone, effect, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, ChangeDetectionStrategy, NgZone, effect, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppointmentService } from '../../services/appointment.service';
 import { AuthService } from '../../services/auth.service';
@@ -14,15 +14,16 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { switchMap, tap, finalize } from 'rxjs';
 import { AppointmentDetailComponent } from '../ui/appointment-detail/appointment-detail';
 import { NavbarComponent, NavItem } from '../ui/navbar/navbar';
+import { ModalConfirmationComponent } from '../ui/modal-confirmation/modal-confirmation';
 
 @Component({
   selector: 'app-dashboard-employees',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, InputField, AppointmentDetailComponent, NavbarComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, InputField, AppointmentDetailComponent, NavbarComponent, ModalConfirmationComponent],
   templateUrl: './dashboard-employees.html',
   styleUrls: ['./dashboard-employees.css']
 })
-export class DashboardEmployees implements OnInit {
+export class DashboardEmployees implements OnInit, OnDestroy {
   private appointmentService = inject(AppointmentService);
   private absenceService = inject(AbsenceService);
   private authService = inject(AuthService);
@@ -40,6 +41,9 @@ export class DashboardEmployees implements OnInit {
   isLoading = signal<boolean>(true);
   today = signal<string>(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`);
   activeTab = signal<string>('agenda');
+  absenceError = signal<string>('');
+  appointmentError = signal<string>('');
+  absenceActionError = signal<string>('');
   
   navItems: NavItem[] = [
     { label: 'Mi Agenda', icon: 'bi bi-journal-text', value: 'agenda' },
@@ -64,11 +68,17 @@ export class DashboardEmployees implements OnInit {
     hora: ['', Validators.required],
     clienteNombre: ['', [Validators.required, Validators.minLength(2)]],
     clienteApellidos: ['', [Validators.required, Validators.minLength(2)]],
-    clienteDni: ['', [Validators.required, Validators.pattern(/^[0-9]{8}[A-Z]$/i)]],
+    clienteDni: ['', [Validators.required, this.dniValidator]],
     clienteEmail: ['', [Validators.required, Validators.email]],
     clienteTelefono: ['', [Validators.required, Validators.pattern(/^[679][0-9]{8}$/)]],
     observaciones: ['']
   });
+
+  showConfirmModal = signal<boolean>(false);
+  confirmTitle = signal<string>('');
+  confirmMessage = signal<string>('');
+  confirmType = signal<'danger' | 'warning' | 'info'>('danger');
+  pendingAction = signal<(() => void) | null>(null);
   
   currentMonthDate = signal<Date>(new Date());
   currentWeekStart = signal<Date>(this.getStartOfWeek(new Date()));
@@ -142,6 +152,29 @@ export class DashboardEmployees implements OnInit {
     return d;
   }
 
+  /** Validador DNI/NIE con verificación de letra de control */
+  dniValidator(control: any): { [key: string]: any } | null {
+    const value = control.value;
+    if (!value) return null;
+
+    const validChars = 'TRWAGMYFPDXBNJZSQVHLCKE';
+    const nifRexp = /^[0-9]{8}[TRWAGMYFPDXBNJZSQVHLCKE]$/i;
+    const nieRexp = /^[XYZ][0-9]{7}[TRWAGMYFPDXBNJZSQVHLCKE]$/i;
+    const str = value.toString().toUpperCase().replace(/\s|-/g, '');
+
+    if (!nifRexp.test(str) && !nieRexp.test(str)) return { invalidDni: true };
+
+    let nie = str;
+    if (nieRexp.test(str)) {
+      nie = nie.replace('X', '0').replace('Y', '1').replace('Z', '2');
+    }
+
+    const letter = str.substr(-1);
+    const charIndex = parseInt(nie.substr(0, 8), 10) % 23;
+
+    return validChars.charAt(charIndex) === letter ? null : { invalidDni: true };
+  }
+
   setActiveTab(tab: string) {
     this.activeTab.set(tab);
     this.cdr.detectChanges();
@@ -200,7 +233,7 @@ export class DashboardEmployees implements OnInit {
       const fechaInicio = start.toISOString().split('T')[0];
       const fechaFin = end.toISOString().split('T')[0];
 
-      const filters = { idUsuarioAsignado: user.id, fechaInicio, fechaFin };
+      const filters = { idUsuarioAsignado: user.id, fechaInicio, fechaFin, includeUnassigned: true };
       return this.appointmentService.getAppointments(filters).pipe(
         tap({
           next: (response) => {
@@ -284,7 +317,7 @@ export class DashboardEmployees implements OnInit {
         const fechaInicio = start.toISOString().split('T')[0];
         const fechaFin = end.toISOString().split('T')[0];
 
-        const filters = { idUsuarioAsignado: user.id, fechaInicio, fechaFin };
+        const filters = { idUsuarioAsignado: user.id, fechaInicio, fechaFin, includeUnassigned: true };
         this.appointmentService.getAppointments(filters).subscribe({
           next: (response) => {
             this.zone.run(() => {
@@ -330,8 +363,37 @@ export class DashboardEmployees implements OnInit {
     }, { allowSignalWrites: true });
   }
 
+  private refreshInterval: any;
+
   ngOnInit() {
     this.loadTramites();
+
+    this.zone.runOutsideAngular(() => {
+      this.refreshInterval = setInterval(() => {
+        if (!document.hidden) {
+          this.zone.run(() => {
+            this.refreshData();
+            this.refreshAbsencesTrigger.update(n => n + 1);
+          });
+        }
+      }, 5000); // Increased to 5s to reduce interference
+    });
+
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+  }
+
+  private onVisibilityChange = () => {
+    if (!document.hidden) {
+      this.refreshData();
+      this.refreshAbsencesTrigger.update(n => n + 1);
+    }
+  };
+
+  ngOnDestroy() {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   loadTramites() {
@@ -357,6 +419,7 @@ export class DashboardEmployees implements OnInit {
 
   openCreateModal() {
     this.appointmentForm.reset();
+    this.appointmentError.set('');
     this.showCreateModal.set(true);
     this.cdr.detectChanges();
   }
@@ -388,14 +451,15 @@ export class DashboardEmployees implements OnInit {
     if (!user) return;
 
     this.isSavingAppointment.set(true);
+    this.appointmentError.set('');
     this.cdr.detectChanges();
 
     const formVal = this.appointmentForm.value;
+    const { fecha, hora, ...restFormVal } = formVal;
     const appointmentData = {
-      ...formVal,
-      fechaHora: `${formVal.fecha}T${formVal.hora}:00`,
-      idUsuarioAsignado: user.id,
-      idMesa: 'e51b3a32-1111-4a3b-9a99-b1d5c7f8a111'
+      ...restFormVal,
+      fechaHora: `${fecha}T${hora}:00`,
+      idUsuarioAsignado: user.id
     };
 
     this.appointmentService.createAppointment(appointmentData)
@@ -408,7 +472,10 @@ export class DashboardEmployees implements OnInit {
           this.closeCreateModal();
           this.refreshData();
         },
-        error: (err) => alert(err.error?.message || 'Error al crear la cita')
+        error: (err) => {
+          this.appointmentError.set(err.error?.message || 'Error al crear la cita. Verifica los datos.');
+          this.cdr.detectChanges();
+        }
       });
   }
 
@@ -421,29 +488,58 @@ export class DashboardEmployees implements OnInit {
     if (this.absenceForm.invalid) return;
     const user = this.currentUser();
     if (user) {
-      const request = { ...this.absenceForm.value, idUsuario: user.id } as any;
+      const { tipo, fechaInicio, fechaFin } = this.absenceForm.value;
+      const today = new Date();
+      const fechaSolicitud = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
+      const request = {
+        idUsuario: user.id,
+        fechaSolicitud,
+        fechaInicio,
+        fechaFin,
+        tipo
+      } as any;
+      this.absenceError.set('');
       this.absenceService.requestAbsence(request).subscribe({
         next: () => {
           this.refreshAbsencesTrigger.update(n => n + 1);
           this.absenceForm.reset({ tipo: TipoAusencia.VACACIONES });
+          this.absenceError.set('');
           this.cdr.detectChanges();
         },
-        error: (err) => alert(err.error?.message || 'Error al solicitar ausencia')
+        error: (err) => {
+          let errorMsg = 'Error al solicitar ausencia';
+          if (err.error?.error?.message) {
+            errorMsg = Array.isArray(err.error.error.message) ? err.error.error.message.join(', ') : err.error.error.message;
+          } else if (err.error?.message) {
+            errorMsg = Array.isArray(err.error.message) ? err.error.message.join(', ') : err.error.message;
+          }
+          this.absenceError.set(errorMsg);
+          this.cdr.detectChanges();
+        }
       });
     }
   }
 
   approveAbsence(id: string) {
+    this.absenceActionError.set('');
     this.absenceService.approveAbsence(id).subscribe({
       next: () => this.refreshAbsencesTrigger.update(n => n + 1),
-      error: (err) => alert(err.error?.message || 'Error al aprobar')
+      error: (err) => {
+        this.absenceActionError.set(err.error?.message || 'Error al aprobar la solicitud');
+        this.cdr.detectChanges();
+      }
     });
   }
 
   rejectAbsence(id: string) {
+    this.absenceActionError.set('');
     this.absenceService.rejectAbsence(id).subscribe({
       next: () => this.refreshAbsencesTrigger.update(n => n + 1),
-      error: (err) => alert(err.error?.message || 'Error al rechazar')
+      error: (err) => {
+        this.absenceActionError.set(err.error?.message || 'Error al rechazar la solicitud');
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -474,11 +570,28 @@ export class DashboardEmployees implements OnInit {
   }
 
   discardClient(cita: Cita) {
-    if (cita.turnoLlegada) {
-      if (confirm(`¿Estás seguro de descartar el turno de ${cita.clienteNombre}? Se marcará como No Presentado.`)) {
-        this.appointmentService.discardTicket(cita.turnoLlegada.id).subscribe(() => this.refreshData());
-      }
-    }
+    if (!cita.turnoLlegada) return;
+    
+    this.confirmTitle.set('¿Descartar Turno?');
+    this.confirmMessage.set(`¿Estás seguro de descartar el turno de ${cita.clienteNombre}? Se marcará como No Presentado.`);
+    this.confirmType.set('warning');
+    this.pendingAction.set(() => {
+      this.appointmentService.discardTicket(cita.turnoLlegada!.id).subscribe(() => {
+        this.refreshData();
+        this.showConfirmModal.set(false);
+      });
+    });
+    this.showConfirmModal.set(true);
+  }
+
+  onConfirmAction() {
+    const action = this.pendingAction();
+    if (action) action();
+  }
+
+  onCancelAction() {
+    this.showConfirmModal.set(false);
+    this.pendingAction.set(null);
   }
 
   updateStatus(cita: Cita, estado: string) {

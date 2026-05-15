@@ -5,14 +5,19 @@ import { DashboardEmployees } from './components/dashboard-employees/dashboard-e
 import { DashboardAdmin } from './components/dashboard-admin/dashboard-admin';
 import { WaitingRoomComponent } from './components/waiting-room/waiting-room';
 import { DashboardSuperAdmin } from './components/dashboard-super-admin/dashboard-super-admin';
+import { KioskComponent } from './components/kiosk/kiosk';
 
 import { authGuard } from './guards/auth.guard';
 
+import { LandingComponent } from './components/landing/landing';
+
 export const routes: Routes = [
+  { path: '', component: LandingComponent },
   { path: 'login', component: Login },
   { path: 'booking/:domain', component: Booking },
   { path: 'booking', redirectTo: '/booking/innovasur.com', pathMatch: 'full' },
-  { path: 'waiting-room/:idEntidad', component: WaitingRoomComponent },
+  { path: 'waiting-room/:slug', component: WaitingRoomComponent },
+  { path: 'kiosk/:slug', component: KioskComponent },
   { 
     path: 'dashboard-super-admin', 
     component: DashboardSuperAdmin,
@@ -29,7 +34,6 @@ export const routes: Routes = [
     path: 'dashboard-admin',
     component: DashboardAdmin,
     canActivate: [authGuard]
-  },
-  { path: '', redirectTo: '/booking/innovasur.com', pathMatch: 'full' }
-];
+  }
+]; 
 

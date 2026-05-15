@@ -65,6 +65,36 @@
   background-color: #2563eb;
 }
 
+/* Sala Selection */
+.sala-chip {
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.sala-chip:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.sala-chip.active {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.05);
+  color: #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
 /* Tramite List */
 .tramite-item {
   cursor: pointer;

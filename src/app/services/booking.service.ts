@@ -23,7 +23,20 @@ export class BookingService {
     return this.http.get<Tramite[]>(`${this.apiUrl}/procedures?idEntidad=${idEntidad}`);
   }
 
-  getSlots(idEntidad: string, idTramite: string, fecha: string): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiUrl}/appointments/slots?idEntidad=${idEntidad}&idTramite=${idTramite}&fecha=${fecha}`);
+  getSalas(idEntidad: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/salas/public/${idEntidad}`);
+  }
+
+  getSlots(idEntidad: string, idTramite: string, fecha: string, idSala?: string): Observable<string[]> {
+    let url = `${this.apiUrl}/appointments/slots?idEntidad=${idEntidad}&idTramite=${idTramite}&fecha=${fecha}`;
+    if (idSala) {
+      url += `&idSala=${idSala}`;
+    }
+    return this.http.get<string[]>(url);
+  }
+
+  createAppointment(appointmentData: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/appointments`, appointmentData);
   }
 }
+

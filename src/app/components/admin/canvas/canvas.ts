@@ -2,38 +2,77 @@ import { Component, OnInit, signal, computed, inject, ViewChild, effect, ChangeD
 import { CommonModule } from '@angular/common';
 import { StageComponent, CoreShapeComponent } from 'ng2-konva';
 import { OfficeService } from '../../../services/office.service';
-import { Sala, Mesa } from '../../../models/office.model';
+import { AuthService } from '../../../services/auth.service';
+import { UserService } from '../../../services/user.service';
+import { Sala, Mesa, DeskAssignment, AssignmentShift } from '../../../models/office.model';
+import { User } from '../../../models/auth.model';
 import { BehaviorSubject, Observable, forkJoin } from 'rxjs';
+import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import Konva from 'konva';
+
+import { ModalConfirmationComponent } from '../../ui/modal-confirmation/modal-confirmation';
 
 @Component({
   selector: 'app-admin-canvas',
   standalone: true,
-  imports: [CommonModule, StageComponent, CoreShapeComponent],
+  imports: [CommonModule, StageComponent, CoreShapeComponent, FormsModule, ReactiveFormsModule, ModalConfirmationComponent],
   templateUrl: './canvas.html',
   styleUrls: ['./canvas.css']
 })
 export class AdminCanvasComponent implements OnInit {
   idEntidad = input<string | undefined>();
   private officeService = inject(OfficeService);
+  private authService = inject(AuthService);
+  private userService = inject(UserService);
+  private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
   
   @ViewChild('stage') stage!: StageComponent;
   @ViewChild('transformer') transformer!: CoreShapeComponent;
 
- 
   rooms = signal<Sala[]>([]);
   selectedRoom = signal<Sala | null>(null);
   tables = signal<Mesa[]>([]);
   isSaving = signal<boolean>(false);
   showPlan = signal<boolean>(true);
-  
- 
+
   canvasMode = signal<'select' | 'pan'>('select');
+  viewMode = signal<'design' | 'assignment'>('design');
   scale = signal<number>(1);
   selectedTableId = signal<string | null>(null);
   isFullscreen = signal<boolean>(false);
-  
+
+  assignments = signal<DeskAssignment[]>([]);
+  selectedDate = signal<string>(new Date().toISOString().split('T')[0]);
+  showAssignModal = signal<boolean>(false);
+  availableEmployees = signal<User[]>([]);
+  isSavingAssignment = signal<boolean>(false);
+  assignmentError = signal<string | null>(null);
+
+  assignmentForm = this.fb.group({
+    idUsuario: ['', Validators.required],
+    turno: [AssignmentShift.COMPLETO, Validators.required]
+  });
+
+  showSalaModal = signal<boolean>(false);
+  isSavingSala = signal<boolean>(false);
+  salaError = signal<string>('');
+  editingSalaId = signal<string | null>(null);
+  selectedFile: File | null = null;
+  currentUser = this.authService.currentUser;
+
+  salaForm = this.fb.group({
+    nombreSala: ['', [Validators.required, Validators.minLength(2)]],
+    canvasWidth: [800, [Validators.required, Validators.min(100)]],
+    canvasHeight: [600, [Validators.required, Validators.min(100)]],
+    colorFondo: ['#FFFFFF']
+  });
+
+  showConfirmModal = signal<boolean>(false);
+  confirmTitle = signal<string>('');
+  confirmMessage = signal<string>('');
+  confirmType = signal<'danger' | 'warning' | 'info'>('danger');
+  pendingAction = signal<(() => void) | null>(null);
  
   public configImage = signal<any>(null);
 
@@ -44,26 +83,65 @@ export class AdminCanvasComponent implements OnInit {
       this.updateTransformer();
     });
   }
-  
- 
+
   stageWidth = signal<number>(800);
   stageHeight = signal<number>(600);
+  panX = signal<number>(0);
+  panY = signal<number>(0);
 
- 
   public configStage = computed(() => ({
     width: this.stageWidth(),
     height: this.stageHeight(),
+    draggable: false
+  }));
+
+  public configMainGroup = computed(() => ({
     draggable: this.canvasMode() === 'pan',
+    x: this.panX(),
+    y: this.panY(),
     scaleX: this.scale(),
-    scaleY: this.scale(),
-    clearBeforeDraw: true
+    scaleY: this.scale()
   }));
 
   ngOnInit() {
-    console.log('Iniciando carga de salas...');
     this.loadRooms();
+    this.loadEmployees();
+    this.loadAssignments();
     this.updateStageSize();
     window.addEventListener('resize', () => this.updateStageSize());
+  }
+
+  handleWheel(event: any) {
+    event.evt.preventDefault();
+    const scaleBy = 1.1;
+    const stage = event.target.getStage();
+    const oldScale = this.scale();
+    const pointer = stage.getPointerPosition();
+
+    const mousePointTo = {
+      x: (pointer.x - this.panX()) / oldScale,
+      y: (pointer.y - this.panY()) / oldScale,
+    };
+
+    const newScale = event.evt.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy;
+    this.scale.set(Math.max(0.1, Math.min(newScale, 5)));
+
+    this.panX.set(pointer.x - mousePointTo.x * this.scale());
+    this.panY.set(pointer.y - mousePointTo.y * this.scale());
+  }
+
+  loadEmployees() {
+    this.userService.getUsers().subscribe(users => {
+
+      this.availableEmployees.set(users.filter(u => u.rol?.nombreRol !== 'Cliente'));
+    });
+  }
+
+  loadAssignments() {
+    this.officeService.getAssignments().subscribe(asg => {
+
+      this.assignments.set(asg);
+    });
   }
 
   private updateStageSize() {
@@ -77,7 +155,6 @@ export class AdminCanvasComponent implements OnInit {
   loadRooms() {
     this.officeService.getRooms().subscribe({
       next: (rooms) => {
-        console.log('Salas recibidas:', rooms);
         this.rooms.set(rooms);
         if (rooms.length > 0) {
           this.selectRoom(rooms[0]);
@@ -91,18 +168,84 @@ export class AdminCanvasComponent implements OnInit {
     this.selectedRoom.set(room);
     this.loadTables(room.id);
     this.loadBackgroundImage();
+
+    this.scale.set(1);
+    this.panX.set(0);
+    this.panY.set(0);
+    setTimeout(() => this.fitToScreen(), 100);
+  }
+
+  fitToScreen() {
+    const room = this.selectedRoom();
+    if (!room) return;
+
+    const wrapper = document.querySelector('.canvas-stage-wrapper');
+    if (!wrapper) return;
+
+    const padding = 40;
+    const availableWidth = wrapper.clientWidth - padding;
+    const availableHeight = wrapper.clientHeight - padding;
+
+    const scaleX = availableWidth / room.canvasWidth;
+    const scaleY = availableHeight / room.canvasHeight;
+    const newScale = Math.min(scaleX, scaleY, 1); // No zoom in more than 100%
+
+    this.scale.set(newScale);
+
+    this.panX.set((wrapper.clientWidth - room.canvasWidth * newScale) / 2);
+    this.panY.set((wrapper.clientHeight - room.canvasHeight * newScale) / 2);
+  }
+
+  deleteRoom(event: Event, room: Sala) {
+    event.stopPropagation();
+    this.confirmTitle.set('¿Eliminar Sala?');
+    this.confirmMessage.set(`¿Estás seguro de que deseas eliminar la sala "${room.nombreSala}"? Se borrarán también todas las mesas configuradas en ella.`);
+    this.confirmType.set('danger');
+    this.pendingAction.set(() => {
+      this.officeService.deleteRoom(room.id).subscribe({
+        next: () => {
+          this.loadRooms();
+          if (this.selectedRoom()?.id === room.id) {
+            this.selectedRoom.set(null);
+            this.tables.set([]);
+            this.configImage.set(null);
+          }
+          this.showConfirmModal.set(false);
+        },
+        error: (err) => {
+          console.error('Error al eliminar la sala:', err);
+          this.showConfirmModal.set(false);
+        }
+      });
+    });
+    this.showConfirmModal.set(true);
   }
 
   loadBackgroundImage() {
+    const room = this.selectedRoom();
+    if (!room?.urlPlano) {
+      this.configImage.set(null);
+      return;
+    }
+
     const image = new Image();
-    image.src = '/media/office_plan.png';
+    image.crossOrigin = 'Anonymous';
+
+    image.src = `http://localhost:3000/public/${room.urlPlano}`;
+    
     image.onload = () => {
       this.configImage.set({
         image: image,
-        width: this.configStage().width,
-        height: this.configStage().height,
-        opacity: 0.5
+        width: room.canvasWidth,
+        height: room.canvasHeight,
+        opacity: 0.5,
+        listening: false
       });
+    };
+    
+    image.onerror = () => {
+      console.error('Error al cargar la imagen del plano:', image.src);
+      this.configImage.set(null);
     };
   }
 
@@ -112,7 +255,6 @@ export class AdminCanvasComponent implements OnInit {
 
   loadTables(roomId: string) {
     this.officeService.getTables().subscribe(allTables => {
-      console.log('Raw tables from server:', allTables);
      
       const roomTables = allTables
         .filter(t => (t.idSala || (t as any).id_sala) === roomId)
@@ -127,10 +269,17 @@ export class AdminCanvasComponent implements OnInit {
     });
   }
 
- 
   setMode(mode: 'select' | 'pan') {
     this.canvasMode.set(mode);
     this.selectedTableId.set(null);
+  }
+
+  setViewMode(mode: 'design' | 'assignment') {
+    this.viewMode.set(mode);
+    this.selectedTableId.set(null);
+    if (mode === 'design') {
+      this.canvasMode.set('select');
+    }
   }
 
   zoomIn() {
@@ -142,8 +291,11 @@ export class AdminCanvasComponent implements OnInit {
   }
 
   onTableClick(id: string) {
-    if (this.canvasMode() === 'select') {
+    if (this.viewMode() === 'design' && this.canvasMode() === 'select') {
       this.selectedTableId.set(id);
+    } else if (this.viewMode() === 'assignment') {
+      this.selectedTableId.set(id);
+      this.openAssignmentModal();
     }
   }
 
@@ -159,21 +311,27 @@ export class AdminCanvasComponent implements OnInit {
     this.isFullscreen.update(v => !v);
   }
 
+  onMainGroupDragEnd(event: any) {
+    const node = event.target;
+    this.panX.set(node.x());
+    this.panY.set(node.y());
+  }
+
   handleStageMouseDown(event: any) {
-   
+
     const target = event.target || event.evt?.target;
     if (!target) return;
 
     const stage = target.getStage();
-    if (target === stage || target.getParent()?.nodeType === 'Layer') {
+
+    if (target === stage) {
       this.selectedTableId.set(null);
     }
   }
 
   updateTransformer() {
     if (!this.stage || !this.transformer) return;
-    
-   
+
     setTimeout(() => {
       const stage = this.stage.getStage();
       const transformer = this.transformer.getStage() as unknown as Konva.Transformer;
@@ -185,7 +343,6 @@ export class AdminCanvasComponent implements OnInit {
         return;
       }
 
-     
       const selectedNode = stage.findOne('.group-' + id);
       if (selectedNode) {
         (selectedNode as Konva.Node).draggable(this.canvasMode() === 'select');
@@ -207,7 +364,6 @@ export class AdminCanvasComponent implements OnInit {
     let node = event.target || event.evt?.target;
     if (!node) return;
 
-   
     if (node.nodeType === 'Shape' || node.className === 'Rect' || node.className === 'Text') {
       node = node.getParent();
     }
@@ -215,9 +371,6 @@ export class AdminCanvasComponent implements OnInit {
     const newX = Math.round(node.x());
     const newY = Math.round(node.y());
 
-    console.log(`Mesa ${table.nombreMesa} arrastrada a:`, { newX, newY });
-
-   
     this.updateTablePosition(table.id, newX, newY);
     
     this.stage?.getStage()?.batchDraw();
@@ -227,15 +380,13 @@ export class AdminCanvasComponent implements OnInit {
     let node = event.target || event.evt?.target;
     if (!node) return;
 
-   
     if (node.nodeType === 'Shape' || node.className === 'Rect' || node.className === 'Text') {
       node = node.getParent();
     }
 
     const newWidth = Math.round(node.width() * node.scaleX());
     const newHeight = Math.round(node.height() * node.scaleY());
-    
-   
+
     node.scaleX(1);
     node.scaleY(1);
 
@@ -257,8 +408,7 @@ export class AdminCanvasComponent implements OnInit {
     );
     this.cdr.detectChanges();
     this.stage?.getStage()?.batchDraw();
-    
-   
+
     this.saveTableChanges(id, { posX: x, posY: y });
     this.updateTransformer();
   }
@@ -283,7 +433,6 @@ export class AdminCanvasComponent implements OnInit {
   addTable() {
     if (!this.selectedRoom()) return;
 
-   
     const existingNames = this.tables().map(t => t.nombreMesa);
     let nextNumber = 1;
     while (existingNames.some(name => name === `Mesa ${nextNumber}`)) {
@@ -313,15 +462,30 @@ export class AdminCanvasComponent implements OnInit {
     const id = this.selectedTableId();
     if (!id) return;
 
-    if (confirm('¿Estás seguro de que deseas eliminar esta mesa?')) {
+    this.confirmTitle.set('¿Eliminar Mesa?');
+    this.confirmMessage.set('¿Estás seguro de que deseas eliminar esta mesa del diseño?');
+    this.confirmType.set('danger');
+    this.pendingAction.set(() => {
       this.isSaving.set(true);
       this.officeService.deleteTable(id).subscribe(() => {
         this.tables.update(current => current.filter(t => t.id !== id));
         this.isSaving.set(false);
         this.selectedTableId.set(null);
         this.updateTransformer();
+        this.showConfirmModal.set(false);
       });
-    }
+    });
+    this.showConfirmModal.set(true);
+  }
+
+  onConfirmAction() {
+    const action = this.pendingAction();
+    if (action) action();
+  }
+
+  onCancelAction() {
+    this.showConfirmModal.set(false);
+    this.pendingAction.set(null);
   }
 
   toggleTableState() {
@@ -350,8 +514,7 @@ export class AdminCanvasComponent implements OnInit {
     }
 
     const tables = this.tables();
-    console.log('Guardando diseño. Leyendo posiciones directamente del canvas...');
-    
+
     this.isSaving.set(true);
     const saveObservables = tables.map(table => {
      
@@ -363,9 +526,6 @@ export class AdminCanvasComponent implements OnInit {
       if (node) {
         x = Math.round(node.x());
         y = Math.round(node.y());
-        console.log(`Mesa ${table.nombreMesa} detectada en canvas: (${x}, ${y})`);
-      } else {
-        console.warn(`No se encontró el nodo para la mesa ${table.id} en el canvas`);
       }
 
       const changes: any = {
@@ -380,27 +540,23 @@ export class AdminCanvasComponent implements OnInit {
     });
 
     forkJoin(saveObservables).subscribe({
-      next: (results) => {
-        console.log('Resultados del guardado:', results);
+      next: () => {
         this.isSaving.set(false);
-        alert('¡Diseño guardado con éxito!');
       },
       error: (error) => {
         console.error('Error masivo al guardar:', error);
         this.isSaving.set(false);
-        alert('Error al guardar el diseño: ' + (error.error?.message || error.message));
       }
     });
   }
 
- 
   getGroupConfig(table: Mesa) {
     return {
       id: table.id,
       name: 'group-' + table.id,
       x: this.getTableX(table),
       y: this.getTableY(table),
-      draggable: this.canvasMode() === 'select'
+      draggable: this.viewMode() === 'design' && this.canvasMode() === 'select'
     };
   }
 
@@ -452,16 +608,181 @@ export class AdminCanvasComponent implements OnInit {
   getTextConfig(table: Mesa) {
     const ancho = table.ancho ?? (table as any).ancho ?? 60;
     const largo = table.largo ?? (table as any).largo ?? 60;
+
+    const assignment = this.getTableAssignment(table.id);
+    let label = table.nombreMesa || (table as any).nombre_mesa || 'Mesa';
+    
+    if (this.viewMode() === 'assignment' && assignment) {
+      label = assignment.usuario?.nombre || 'Asignada';
+    }
+
     return {
       x: 0,
       y: largo / 2 - 7,
-      text: table.nombreMesa || (table as any).nombre_mesa || 'Mesa',
+      text: label,
       fontSize: 11,
       fontFamily: 'Inter, sans-serif',
-      fill: '#1e293b',
+      fill: assignment ? '#2563eb' : '#1e293b',
       width: ancho,
       align: 'center',
-      fontStyle: '600'
+      fontStyle: assignment ? '700' : '600'
     };
+  }
+
+  getTableAssignment(tableId: string): DeskAssignment | undefined {
+    return this.assignments().find(a => 
+      a.idMesa === tableId && 
+      a.fecha === this.selectedDate()
+    );
+  }
+
+  openAssignmentModal() {
+    const assignment = this.getTableAssignment(this.selectedTableId()!);
+    if (assignment) {
+      this.assignmentForm.patchValue({
+        idUsuario: assignment.idUsuario,
+        turno: assignment.turno
+      });
+    } else {
+      this.assignmentForm.reset({
+        turno: AssignmentShift.COMPLETO
+      });
+    }
+    this.assignmentError.set(null);
+    this.showAssignModal.set(true);
+  }
+
+  closeAssignmentModal() {
+    this.showAssignModal.set(false);
+    this.selectedTableId.set(null);
+  }
+
+  saveAssignment() {
+    if (this.assignmentForm.invalid || !this.selectedTableId()) return;
+
+    this.isSavingAssignment.set(true);
+    const data = {
+      ...this.assignmentForm.value,
+      idMesa: this.selectedTableId(),
+      fecha: this.selectedDate()
+    };
+
+    const existing = this.getTableAssignment(this.selectedTableId()!);
+    
+    if (existing) {
+
+      this.officeService.deleteAssignment(existing.id).subscribe(() => {
+        this.createNewAssignment(data);
+      });
+    } else {
+      this.createNewAssignment(data);
+    }
+  }
+
+  private createNewAssignment(data: any) {
+    this.officeService.createAssignment(data).subscribe({
+      next: () => {
+        this.loadAssignments();
+        this.isSavingAssignment.set(false);
+        this.closeAssignmentModal();
+      },
+      error: (err) => {
+        this.assignmentError.set(err.error?.message || 'Error al guardar la asignación');
+        this.isSavingAssignment.set(false);
+      }
+    });
+  }
+
+  removeAssignment() {
+    const existing = this.getTableAssignment(this.selectedTableId()!);
+    if (existing) {
+      this.isSavingAssignment.set(true);
+      this.officeService.deleteAssignment(existing.id).subscribe(() => {
+        this.loadAssignments();
+        this.isSavingAssignment.set(false);
+        this.closeAssignmentModal();
+      });
+    }
+  }
+
+  openNewSalaModal() {
+    this.editingSalaId.set(null);
+    this.salaForm.reset({ canvasWidth: 800, canvasHeight: 600, colorFondo: '#FFFFFF' });
+    this.salaError.set('');
+    this.selectedFile = null;
+    this.showSalaModal.set(true);
+  }
+
+  closeSalaModal() {
+    this.showSalaModal.set(false);
+  }
+
+  onFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedFile = file;
+    }
+  }
+
+  saveSala() {
+    if (this.salaForm.invalid) {
+      this.salaForm.markAllAsTouched();
+      return;
+    }
+
+    this.isSavingSala.set(true);
+    this.salaError.set('');
+    
+    const user = this.currentUser();
+    const idEntidad = (user as any)?.idEntidad || (user as any)?.id_entidad;
+
+    if (!idEntidad) {
+      this.salaError.set('No se pudo determinar la entidad');
+      this.isSavingSala.set(false);
+      return;
+    }
+
+    const performSave = (urlPlano?: string) => {
+      const formValue = this.salaForm.value;
+      const salaData = { ...formValue, idEntidad, urlPlano } as any;
+
+      if (this.editingSalaId()) {
+        this.officeService.updateRoom(this.editingSalaId()!, salaData).subscribe({
+          next: () => {
+            this.isSavingSala.set(false);
+            this.closeSalaModal();
+            this.loadRooms();
+          },
+          error: (err) => {
+            this.isSavingSala.set(false);
+            this.salaError.set('Error al actualizar la sala');
+          }
+        });
+      } else {
+        this.officeService.createRoom(salaData).subscribe({
+          next: () => {
+            this.isSavingSala.set(false);
+            this.closeSalaModal();
+            this.loadRooms();
+          },
+          error: (err) => {
+            this.isSavingSala.set(false);
+            this.salaError.set('Error al crear la sala');
+          }
+        });
+      }
+    };
+
+    if (this.selectedFile) {
+      this.officeService.uploadRoomPlan(this.selectedFile).subscribe({
+        next: (res) => performSave(res.url),
+        error: (err) => {
+          this.isSavingSala.set(false);
+          this.salaError.set('Error al subir el plano');
+        }
+      });
+    } else {
+      performSave();
+    }
   }
 }

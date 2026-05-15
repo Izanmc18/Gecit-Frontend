@@ -2,7 +2,8 @@ import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { TurnManagementService } from '../../services/turn-management.service';
-import { interval, Subscription } from 'rxjs';
+import { interval, Subscription, switchMap, of } from 'rxjs';
+import { BookingService } from '../../services/booking.service';
 
 @Component({
   selector: 'app-waiting-room',
@@ -13,34 +14,50 @@ import { interval, Subscription } from 'rxjs';
 })
 export class WaitingRoomComponent implements OnInit, OnDestroy {
   private turnService = inject(TurnManagementService);
+  private bookingService = inject(BookingService);
   private route = inject(ActivatedRoute);
 
- 
   idEntidad: string = '';
+  slug: string = '';
   displayData = signal<any>({ llamados: [], enEspera: [] });
   currentTime = signal<Date>(new Date());
   
   private lastCalledTicket: string | null = null;
-  private pollSubscription?: Subscription;
+  private eventsSubscription?: Subscription;
   private clockSubscription?: Subscription;
 
   ngOnInit() {
-    this.idEntidad = this.route.snapshot.paramMap.get('idEntidad') || '';
+    this.slug = this.route.snapshot.paramMap.get('slug') || '';
     
-   
     this.clockSubscription = interval(1000).subscribe(() => {
       this.currentTime.set(new Date());
     });
 
-   
-    this.loadData();
-    this.pollSubscription = interval(5000).subscribe(() => {
-      this.loadData();
-    });
+    if (this.slug) {
+      this.bookingService.getEntityByDomain(this.slug).subscribe({
+        next: (entidad) => {
+          this.idEntidad = entidad.id;
+          this.loadData();
+          this.startSse();
+        },
+        error: (err) => console.error('Error resolving slug:', err)
+      });
+    }
+  }
+
+  private startSse() {
+    if (this.idEntidad) {
+      this.eventsSubscription = this.turnService.getTurnEvents(this.idEntidad).subscribe({
+        next: (event) => {
+          this.loadData();
+        },
+        error: (err) => console.error('SSE Error:', err)
+      });
+    }
   }
 
   ngOnDestroy() {
-    this.pollSubscription?.unsubscribe();
+    this.eventsSubscription?.unsubscribe();
     this.clockSubscription?.unsubscribe();
   }
 
@@ -68,7 +85,7 @@ export class WaitingRoomComponent implements OnInit, OnDestroy {
 
   private playNotificationSound() {
     const audio = new Audio('assets/sounds/notification.mp3');
-    audio.play().catch(e => console.log('Audio play blocked by browser', e));
+    audio.play().catch(() => {});
   }
 
   getFormattedDate(): string {

@@ -13,63 +13,67 @@
         <!-- DASHBOARD VIEW -->
         @if (activeTab() === 'dashboard') {
             <div class="welcome-section">
-                <h1>¡Panel de Control Global!</h1>
-                <p style="color: #64748b;">Métricas en tiempo real de toda la plataforma GECIT.</p>
+                <h1 class="section-title">¡Panel de Control Global!</h1>
+                <p class="text-muted">Métricas en tiempo real de toda la plataforma GECIT.</p>
             </div>
 
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-icon"><i class="bi bi-buildings"></i></div>
                     <div class="stat-info">
-                        <span class="value">{{ stats().totalEntidades }}</span>
+                        <span class="value">{{ stats().totalEntities }}</span>
                         <span class="label">Entidades Registradas</span>
                     </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon" style="background: #f0fdf4; color: #22c55e;"><i class="bi bi-people"></i></div>
                     <div class="stat-info">
-                        <span class="value">{{ stats().totalUsuarios }}</span>
+                        <span class="value">{{ stats().totalUsers }}</span>
                         <span class="label">Usuarios Totales</span>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon" style="background: #fff7ed; color: #f97316;"><i class="bi bi-clock-history"></i></div>
+                    <div class="stat-icon" style="background: #fff7ed; color: #f97316;"><i class="bi bi-graph-up-arrow"></i></div>
                     <div class="stat-info">
-                        <span class="value">{{ stats().esperaMedia }} min</span>
-                        <span class="label">Espera Media Global</span>
+                        <span class="value">{{ stats().totalResources }}</span>
+                        <span class="label">Recursos Configurados (Salas + Mesas)</span>
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon" style="background: #faf5ff; color: #a855f7;"><i class="bi bi-check2-circle"></i></div>
+                    <div class="stat-icon" style="background: #faf5ff; color: #a855f7;"><i class="bi bi-graph-up-arrow"></i></div>
                     <div class="stat-info">
-                        <span class="value">{{ stats().totalCitasRealizadas || 0 }}</span>
-                        <span class="label">Citas Finalizadas</span>
+                        <span class="value">+{{ (stats().platformGrowth?.slice(-1)[0])?.value || 0 }}</span>
+                        <span class="label">Nuevas Entidades (Mes Actual)</span>
                     </div>
                 </div>
             </div>
 
             <div class="content-grid">
                 <div class="chart-card">
-                    <div class="card-header"><h2>Volumen de Citas Semanal</h2></div>
+                    <div class="card-header"><h2>Crecimiento de la Plataforma</h2></div>
                     <div class="chart-container">
-                        @for (week of stats().weeklyData; track week.name) {
+                        @for (item of stats().platformGrowth; track item.name) {
                             <div class="bar-group">
                                 <div class="bar-bg">
-                                    <div class="bar-fill" [style.height.%]="(week.value / 100) * 100"></div>
+                                    <div class="bar-fill" [style.height.%]="(item.value / maxGrowthValue()) * 100"></div>
                                 </div>
-                                <span class="bar-label">{{ week.name }}</span>
+                                <span class="bar-label">{{ item.name }}</span>
                             </div>
                         }
                     </div>
                 </div>
 
                 <div class="recent-card">
-                    <div class="card-header"><h2>Entidades Recientes</h2></div>
+                    <div class="card-header"><h2>Distribución de Usuarios</h2></div>
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        @for (entity of entities().slice(0, 5); track entity.id) {
+                        @for (role of stats().userDistribution; track role.name) {
                             <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid #f1f5f9;">
-                                <span style="font-weight: 700; font-size: 0.85rem;">{{ entity.nombre }}</span>
-                                <span class="status-badge status-active">Activa</span>
+                                <span style="font-weight: 700; font-size: 0.85rem;">{{ role.name }}</span>
+                                <span class="status-badge" [ngClass]="{
+                                    'status-active': role.name === 'Admin',
+                                    'status-pending': role.name === 'Empleado',
+                                    'role-super': role.name === 'SuperAdmin'
+                                }">{{ role.value }}</span>
                             </div>
                         }
                     </div>
@@ -79,11 +83,26 @@
 
         <!-- ENTITIES VIEW -->
         @if (activeTab() === 'entities') {
-            <div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h1>Entidades y Ayuntamientos</h1>
+            <div class="header-actions">
+                <h1 class="section-title">Entidades y Ayuntamientos</h1>
                 <button class="btn-primary" (click)="openCreateEntity()">
                     <i class="bi bi-plus-lg"></i> Nueva Entidad
                 </button>
+            </div>
+
+            <!-- FILTERS BAR (ENTITIES) -->
+            <div class="filters-bar">
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text" [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value); entityPage.set(1)" placeholder="Buscar entidad por nombre o dominio...">
+                </div>
+                
+                <div class="filter-group">
+                    <select class="filter-select" (change)="entitySortDir.set($any($event.target).value); entityPage.set(1)">
+                        <option value="asc">Orden: A - Z</option>
+                        <option value="desc">Orden: Z - A</option>
+                    </select>
+                </div>
             </div>
 
             <div class="table-section">
@@ -97,7 +116,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @for (entity of filteredEntities(); track entity.id) {
+                        @for (entity of paginatedEntities(); track entity.id) {
                             <tr>
                                 <td>
                                     <div class="entity-row">
@@ -108,22 +127,54 @@
                                 <td><span class="domain-badge">{{ entity.dominio }}</span></td>
                                 <td style="font-size: 0.75rem; color: #94a3b8;">{{ entity.id }}</td>
                                 <td>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <button class="btn-icon" (click)="openEditEntity(entity)"><i class="bi bi-pencil"></i></button>
-                                        <button class="btn-icon" style="color: #ef4444;"><i class="bi bi-trash"></i></button>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" (click)="openEditEntity(entity)">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3" (click)="deleteEntity(entity.id)">
+                                            <i class="bi bi-trash"></i> Borrar
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
                         }
                     </tbody>
                 </table>
+
+                <!-- PAGINATION CONTROLS (ENTITIES) -->
+                <div class="pagination-footer">
+                    <div class="page-info">
+                        Mostrando {{ paginatedEntities().length }} de {{ filteredEntities().length }} entidades
+                    </div>
+                    
+                    <div class="pagination-actions">
+                        <div class="page-size">
+                            <span>Mostrar:</span>
+                            <select (change)="entityPageSize.set($any($event.target).value); entityPage.set(1)">
+                                <option [value]="5">5</option>
+                                <option [value]="10">10</option>
+                                <option [value]="20">20</option>
+                            </select>
+                        </div>
+                        
+                        <div class="page-nav">
+                            <button class="nav-btn" [disabled]="entityPage() === 1" (click)="entityPage.set(entityPage() - 1)">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <span class="page-num">Página {{ entityPage() }} de {{ totalEntityPages() || 1 }}</span>
+                            <button class="nav-btn" [disabled]="entityPage() === totalEntityPages() || totalEntityPages() === 0" (click)="entityPage.set(entityPage() + 1)">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         }
 
         <!-- USERS VIEW -->
         @if (activeTab() === 'users') {
             <div class="header-actions">
-                <h1>Gestión Global de Usuarios</h1>
+                <h1 class="section-title">Gestión Global de Usuarios</h1>
                 <button class="btn-primary" (click)="openCreateUser()">
                     <i class="bi bi-person-plus"></i> Nuevo Usuario
                 </button>
@@ -178,8 +229,8 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <button class="btn-icon" style="color: #ef4444;" (click)="deleteUser(user.id)">
-                                        <i class="bi bi-trash"></i>
+                                    <button class="btn btn-sm btn-outline-danger rounded-pill px-3" (click)="deleteUser(user.id)">
+                                        <i class="bi bi-trash"></i> Borrar
                                     </button>
                                 </td>
                             </tr>
@@ -216,7 +267,7 @@
                 </div>
             </div>
         }
-    </div>
+
 
     <!-- USER MODAL -->
     @if (showUserModal()) {
@@ -294,6 +345,11 @@
                         <label>URL Logo</label>
                         <input type="text" formControlName="logoUrl" class="form-control">
                     </div>
+                    <div style="margin-bottom: 2rem;">
+                        <label>Trámites Ofrecidos (Separados por comas)</label>
+                        <input type="text" formControlName="tramitesString" class="form-control" placeholder="Ej: Higiene bucal, Implantes, Revisiones">
+                        <small style="color: #64748b; font-size: 0.8rem; display: block; margin-top: 0.3rem;">Estos trámites se crearán automáticamente como competencias para esta empresa.</small>
+                    </div>
                     <div style="display: flex; gap: 1rem;">
                         <button type="button" (click)="showEntityModal.set(false)" style="flex: 1; padding: 0.75rem; border-radius: 0.75rem; border: none; font-weight: 700; cursor: pointer;">Cancelar</button>
                         <button type="submit" class="btn-primary" style="flex: 1;">Guardar Entidad</button>
@@ -302,4 +358,160 @@
             </div>
         </div>
     }
+
+    <!-- ROLES VIEW -->
+    @if (activeTab() === 'settings') {
+        <div class="header-actions">
+            <div>
+                <h1 class="section-title">Gestión de Roles</h1>
+                <p class="text-muted">Administra los roles de acceso disponibles en la plataforma.</p>
+            </div>
+        </div>
+
+                <!-- ERROR MESSAGE -->
+                @if (rolesError()) {
+                    <div class="roles-error">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        {{ rolesError() }}
+                        <button (click)="rolesError.set('')" style="background:none;border:none;cursor:pointer;font-size:1rem;">✕</button>
+                    </div>
+                }
+
+                <div class="roles-layout">
+
+                    <!-- ROLES LIST -->
+                    <div class="table-section">
+                        <div style="padding: 2rem 2rem 0;">
+                            <h2 style="font-size:1.25rem;font-weight:700;color:#334155;margin:0 0 0.5rem 0;">Roles Existentes</h2>
+                            <p style="font-size:0.9rem;color:#64748b;margin:0;">{{ roles().length }} roles registrados en la plataforma</p>
+                        </div>
+
+                        @if (rolesLoading()) {
+                            <div style="padding:3rem;text-align:center;color:#94a3b8;">
+                                <i class="bi bi-arrow-repeat" style="font-size:1.5rem;animation:spin 1s linear infinite;display:block;margin-bottom:0.5rem;"></i>
+                                Cargando roles...
+                            </div>
+                        } @else {
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Nombre del Rol</th>
+                                        <th>ID</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (rol of roles(); track rol.id) {
+                                        <tr>
+                                            <td>
+                                                @if (editingRol()?.id === rol.id) {
+                                                    <input
+                                                        class="roles-inline-input"
+                                                        type="text"
+                                                        [value]="editingRolName()"
+                                                        (input)="editingRolName.set($any($event.target).value)"
+                                                        (keyup.enter)="saveEditRol()"
+                                                        (keyup.escape)="cancelEditRol()"
+                                                        autofocus
+                                                    />
+                                                } @else {
+                                                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                                                        <span class="role-dot" [ngClass]="{
+                                                            'dot-super': rol.nombreRol === 'SuperAdmin',
+                                                            'dot-admin': rol.nombreRol === 'Admin',
+                                                            'dot-emp': rol.nombreRol === 'Empleado',
+                                                            'dot-client': rol.nombreRol === 'Cliente'
+                                                        }"></span>
+                                                        <span style="font-weight:600;color:#1e293b;">{{ rol.nombreRol }}</span>
+                                                    </div>
+                                                }
+                                            </td>
+                                            <td style="font-size:0.75rem;color:#94a3b8;font-family:monospace;">{{ rol.id }}</td>
+                                            <td>
+                                                @if (editingRol()?.id === rol.id) {
+                                                    <div class="d-flex gap-2">
+                                                        <button class="btn btn-sm btn-outline-success rounded-pill px-3" (click)="saveEditRol()" title="Guardar">
+                                                            <i class="bi bi-check-lg"></i> Guardar
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" (click)="cancelEditRol()" title="Cancelar">
+                                                            <i class="bi bi-x-lg"></i> Cancelar
+                                                        </button>
+                                                    </div>
+                                                } @else {
+                                                    <div class="d-flex gap-2">
+                                                        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" (click)="startEditRol(rol)" title="Editar nombre">
+                                                            <i class="bi bi-pencil"></i> Editar
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3" (click)="deleteRol(rol.id)" title="Eliminar rol">
+                                                            <i class="bi bi-trash"></i> Borrar
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+
+                    <!-- CREATE ROLE PANEL -->
+                    <div class="roles-create-panel" style="padding: 2.5rem;">
+                        <div class="settings-card-header" style="margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid #e2e8f0;">
+                            <div class="settings-icon" style="background:#eff6ff;color:#2563eb;width:50px;height:50px;font-size:1.5rem;">
+                                <i class="bi bi-shield-plus"></i>
+                            </div>
+                            <div>
+                                <h3 style="font-size:1.25rem;font-weight:700;color:#1e293b;margin:0 0 0.25rem 0;">Nuevo Rol</h3>
+                                <p style="font-size:0.9rem;color:#64748b;margin:0;">Crea un rol personalizado</p>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom:2rem;">
+                            <label style="display:block;font-size:0.9rem;font-weight:700;color:#334155;margin-bottom:0.75rem;">
+                                Nombre del Rol
+                            </label>
+                            <input
+                                class="settings-input"
+                                type="text"
+                                placeholder="Ej: Supervisor"
+                                style="width:100%;box-sizing:border-box;padding:0.75rem 1rem;font-size:0.95rem;"
+                                [value]="newRolName()"
+                                (input)="newRolName.set($any($event.target).value)"
+                                (keyup.enter)="createRol()"
+                            />
+                            <small style="font-size:0.8rem;color:#94a3b8;display:block;margin-top:0.5rem;">
+                                Pulsa Enter o haz click en Crear Rol para guardar.
+                            </small>
+                        </div>
+
+                        <button
+                            class="btn-primary"
+                            style="width:100%;justify-content:center;padding:0.875rem;font-size:1rem;"
+                            (click)="createRol()"
+                            [disabled]="!newRolName().trim()">
+                            <i class="bi bi-plus-lg"></i> Crear Rol
+                        </button>
+
+                        <div style="margin-top:2.5rem;padding:1.5rem;background:#f8fafc;border-radius:1rem;border:1px solid #e2e8f0;">
+                            <p style="font-size:0.9rem;font-weight:700;color:#334155;margin:0 0 0.75rem 0;display:flex;align-items:center;gap:0.5rem;">
+                                <i class="bi bi-info-circle text-primary"></i> Información
+                            </p>
+                            <p style="font-size:0.85rem;color:#64748b;margin:0;line-height:1.6;">
+                                Los roles controlan los permisos de acceso de los usuarios. Al eliminar un rol, los usuarios asociados a él dejarán de tener permisos asignados.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+        }
+    </div>
+
+    <app-modal-confirmation
+        [show]="showConfirmModal()"
+        [title]="confirmTitle()"
+        [message]="confirmMessage()"
+        [type]="confirmType()"
+        (confirm)="onConfirmAction()"
+        (cancel)="onCancelAction()">
+    </app-modal-confirmation>
 </div>

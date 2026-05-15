@@ -50,9 +50,25 @@
           @if (step() === 1) {
             <div class="animate-fade-in">
               <h3 class="mb-2 fw-bold text-primary">{{ entidadName() }}</h3>
-              <p class="text-muted mb-4">Selecciona el trámite que deseas realizar para continuar.</p>
+              <p class="text-muted mb-4">Selecciona la oficina y el trámite para continuar.</p>
               
-              <div class="tramites-list d-flex flex-column gap-3">
+              <div class="mb-4">
+                <label class="form-label fw-bold small text-muted text-uppercase mb-2">1. Selecciona la Oficina / Sala</label>
+                <div class="salas-grid d-flex flex-wrap gap-2">
+                  @for (s of salas(); track s.id) {
+                    <div (click)="bookingForm.get('idSala')?.setValue(s.id)"
+                         class="sala-chip"
+                         [class.active]="bookingForm.get('idSala')?.value === s.id">
+                      <i class="bi bi-building me-2"></i>
+                      {{ s.nombreSala }}
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label fw-bold small text-muted text-uppercase mb-2">2. Selecciona el Trámite</label>
+                <div class="tramites-list d-flex flex-column gap-2">
                 @for (t of tramites(); track t.id) {
                   <div (click)="bookingForm.get('idTramite')?.setValue(t.id)"
                        class="tramite-item p-3 border rounded-3 d-flex align-items-center justify-content-between"
@@ -66,6 +82,7 @@
                   </div>
                 }
               </div>
+            </div>
 
               <div class="d-grid mt-5">
                 <button class="btn btn-primary btn-lg rounded-pill py-3 fw-bold shadow" 
@@ -254,14 +271,25 @@
                     </div>
                   </div>
 
-                  <div class="d-flex gap-2 mt-5">
+                  @if (bookingError()) {
+                    <div class="alert alert-danger rounded-3 py-2 px-3 mt-3 small">
+                      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ bookingError() }}
+                    </div>
+                  }
+
+                  <div class="d-flex gap-2 mt-4">
                     <button class="btn btn-light btn-lg rounded-pill flex-grow-1 py-3" (click)="setStep(2)">
                       Atrás
                     </button>
                     <button class="btn btn-primary btn-lg rounded-pill flex-grow-2 py-3 fw-bold shadow" 
-                            [disabled]="bookingForm.invalid"
+                            [disabled]="bookingForm.invalid || isSubmitting()"
                             (click)="submitBooking()">
-                      Confirmar Cita <i class="bi bi-check-circle ms-2"></i>
+                      @if(isSubmitting()) {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Procesando...
+                      } @else {
+                        Confirmar Cita <i class="bi bi-check-circle ms-2"></i>
+                      }
                     </button>
                   </div>
                 </div>
@@ -280,17 +308,23 @@
               
               <div class="card bg-light border-0 rounded-4 text-start p-4 mb-4">
                 <h5 class="fw-bold mb-3 border-bottom pb-2">Resumen de la Cita</h5>
-                <div class="d-flex mb-2">
-                  <i class="bi bi-person text-primary me-3"></i>
-                  <span>{{ bookingForm.get('clienteNombre')?.value }} {{ bookingForm.get('clienteApellidos')?.value }}</span>
+                <div class="d-flex mb-3">
+                  <i class="bi bi-person text-primary me-3 fs-5"></i>
+                  <div>
+                    <div class="fw-bold">{{ bookingForm.get('clienteNombre')?.value }} {{ bookingForm.get('clienteApellidos')?.value }}</div>
+                    <div class="small text-muted">{{ bookingForm.get('clienteEmail')?.value }}</div>
+                  </div>
                 </div>
-                <div class="d-flex mb-2">
-                  <i class="bi bi-calendar-event text-primary me-3"></i>
-                  <span>{{ selectedDate() }} a las {{ selectedTime() }}</span>
+                <div class="d-flex mb-3">
+                  <i class="bi bi-calendar-event text-primary me-3 fs-5"></i>
+                  <div>
+                    <div class="fw-bold">{{ selectedDate() }}</div>
+                    <div class="small text-muted">{{ selectedTime() }}h</div>
+                  </div>
                 </div>
                 <div class="d-flex">
-                  <i class="bi bi-file-text text-primary me-3"></i>
-                  <span>Trámite seleccionado</span>
+                  <i class="bi bi-file-text text-primary me-3 fs-5"></i>
+                  <div class="fw-bold">{{ selectedTramiteName() }}</div>
                 </div>
               </div>
 

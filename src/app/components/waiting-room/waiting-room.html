@@ -2,7 +2,7 @@
     <!-- HEADER -->
     <header class="tv-header">
         <div class="tv-logo">
-            <img src="media/logo.jpg" alt="GECIT Logo" class="logo-main">
+            <img src="/media/logo.jpg" alt="GECIT Logo" class="logo-main">
         </div>
         <div class="tv-clock">
             <div class="time">{{ currentTime() | date:'HH:mm' }}</div>
@@ -25,15 +25,19 @@
 
             <div class="cards-grid">
                 @for (item of displayData().llamados; track item.ticket) {
-                    <div class="ticket-card">
+                    <div class="ticket-card ticket-card--active">
                         <div class="ticket-label">TICKET</div>
                         <div class="ticket-number">{{ item.ticket }}</div>
                         <div class="mesa-label">{{ item.mesa }}</div>
+                        <div class="calling-indicator">
+                            <span></span><span></span><span></span>
+                        </div>
                     </div>
                 }
                 @if (displayData().llamados.length === 0) {
                     <div class="no-calls-msg">
-                        <p>No hay turnos siendo llamados en este momento.</p>
+                        <i class="bi bi-hourglass-split"></i>
+                        <p>En espera de llamadas...</p>
                     </div>
                 }
             </div>

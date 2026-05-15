@@ -1,6 +1,5 @@
 import { User } from "./auth.model";
 
-
 export enum EstadoCita {
   PENDIENTE = 'Pendiente',
   REALIZADA = 'Realizada',

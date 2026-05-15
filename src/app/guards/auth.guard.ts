@@ -14,7 +14,6 @@ export const authGuard: CanActivateFn = (route, state) => {
     const user = authService.currentUser();
     const ADMIN_ROLE = 'e51b3a32-1111-4a3b-9a99-b1d5c7f8a121';
 
-   
     if (user && user.idRol === ADMIN_ROLE && state.url === '/dashboard-employees') {
       router.navigate(['/dashboard-admin']);
       return false;
@@ -24,12 +23,10 @@ export const authGuard: CanActivateFn = (route, state) => {
       return true;
     }
 
-   
     router.navigate(['/login']);
     return false;
   }
 
- 
   router.navigate(['/login']);
   return false;
 };

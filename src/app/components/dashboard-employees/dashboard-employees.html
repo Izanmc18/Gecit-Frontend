@@ -53,7 +53,7 @@
                 </thead>
                 <tbody>
                   @for (cita of filteredAppointments(); track cita.id) {
-                    @if (cita.fechaHora.startsWith(today())) {
+                    @if (true) {
                       <tr>
                         <td class="ps-4">
                           <span class="fw-bold text-primary">{{ cita.fechaHora | date:'HH:mm' }}</span>
@@ -61,11 +61,11 @@
                         <td>
                           <div class="d-flex align-items-center">
                             <div class="avatar-circle bg-primary-subtle text-primary me-2">
-                              {{ cita.clienteNombre[0] }}{{ cita.clienteApellidos[0] }}
+                              {{ cita.clienteNombre ? cita.clienteNombre[0] : '-' }}{{ cita.clienteApellidos ? cita.clienteApellidos[0] : '-' }}
                             </div>
                             <div>
-                              <div class="fw-bold">{{ cita.clienteNombre }} {{ cita.clienteApellidos }}</div>
-                              <div class="small text-muted">{{ cita.clienteDni }}</div>
+                              <div class="fw-bold">{{ cita.clienteNombre || 'N/A' }} {{ cita.clienteApellidos || '' }}</div>
+                              <div class="small text-muted">{{ cita.clienteDni || 'N/A' }}</div>
                             </div>
                           </div>
                         </td>
@@ -84,47 +84,55 @@
                             {{ cita.estado }}
                           </span>
                         </td>
-                        <td class="pe-4 text-end">
-                          <div class="d-flex justify-content-end gap-2">
-                            <button class="btn btn-sm btn-detail-modern rounded-pill px-3" 
+                        <td class="pe-4">
+                          <div class="action-cell-container">
+                            <!-- Basic Detail Icon Button -->
+                            <button class="action-icon-btn shadow-sm" 
+                                    title="Ver Detalle"
                                     (click)="openDetailModal(cita)">
-                              <i class="bi bi-eye"></i> Detalle
+                              <i class="bi bi-eye"></i>
                             </button>
                             
                             @if (cita.estado === 'Pendiente') {
                               @if (cita.turnoLlegada) {
                                 @if (cita.turnoLlegada.estado === 'En espera') {
-                                  <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" (click)="callClient(cita)">
-                                    <i class="bi bi-megaphone"></i> Llamar
+                                  <button class="btn btn-sm btn-call-premium pulse rounded-pill px-3 py-2 fw-bold animate-fade-in" 
+                                          (click)="callClient(cita)">
+                                    <i class="bi bi-megaphone-fill me-2"></i> Llamar Cliente
                                   </button>
                                 } @else if (cita.turnoLlegada.estado === 'Llamado') {
-                                  <div class="d-flex gap-2">
-                                    <button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" (click)="attendClient(cita)">
-                                      <i class="bi bi-person-check"></i> Atender
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger rounded-pill px-2 shadow-sm" title="Descartar (No presentado)" (click)="discardClient(cita)">
-                                      <i class="bi bi-person-x"></i>
+                                  <div class="d-flex gap-2 animate-fade-in">
+                                    <button class="btn btn-sm btn-attend-premium rounded-pill px-3 py-2 fw-bold" 
+                                            (click)="attendClient(cita)">
+                                      <i class="bi bi-person-check-fill me-2"></i> Atender
                                     </button>
                                   </div>
                                 } @else if (cita.turnoLlegada.estado === 'Atendido') {
-                                  <button class="btn btn-sm btn-dark rounded-pill px-3 shadow-sm" (click)="updateStatus(cita, 'Realizada')">
-                                    <i class="bi bi-check-circle"></i> Finalizar
+                                  <button class="btn btn-sm btn-dark rounded-pill px-3 py-2 fw-bold shadow-sm animate-fade-in" 
+                                          (click)="updateStatus(cita, 'Realizada')">
+                                    <i class="bi bi-check-circle-fill me-2"></i> Finalizar
                                   </button>
                                 }
                               } @else {
-                                
-                                <div class="dropdown">
-                                  <button class="btn btn-sm btn-outline-primary dropdown-toggle rounded-pill px-3 shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Acciones
-                                  </button>
-                                  <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 animate-fade-in">
-                                    <li><a class="dropdown-item py-2 cursor-pointer" (click)="updateStatus(cita, 'Realizada')"><i class="bi bi-check2-circle text-success me-2"></i> Marcar Realizada</a></li>
-                                    <li><a class="dropdown-item py-2 cursor-pointer" (click)="updateStatus(cita, 'Cancelada')"><i class="bi bi-x-circle text-danger me-2"></i> Cancelar Cita</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item py-2 cursor-pointer" (click)="updateStatus(cita, 'No presentado')"><i class="bi bi-person-x text-muted me-2"></i> No presentado</a></li>
-                                  </ul>
+                                <!-- WAITING FOR ARRIVAL STATE -->
+                                <div class="waiting-arrival-container animate-fade-in" title="El ciudadano aún no ha confirmado su llegada">
+                                  <i class="bi bi-hourglass-split"></i>
+                                  <span>Esperando...</span>
                                 </div>
                               }
+
+                              <!-- Secondary Actions Dropdown (Always available for Pending) -->
+                              <div class="dropdown">
+                                <button class="action-icon-btn dropdown-toggle no-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                  <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 animate-fade-in">
+                                  <li><a class="dropdown-item py-2 cursor-pointer" (click)="updateStatus(cita, 'Realizada')"><i class="bi bi-check2-circle text-success me-2"></i> Marcar Realizada</a></li>
+                                  <li><a class="dropdown-item py-2 cursor-pointer" (click)="updateStatus(cita, 'Cancelada')"><i class="bi bi-x-circle text-danger me-2"></i> Cancelar Cita</a></li>
+                                  <li><hr class="dropdown-divider"></li>
+                                  <li><a class="dropdown-item py-2 cursor-pointer" (click)="updateStatus(cita, 'No presentado')"><i class="bi bi-person-x text-muted me-2"></i> No presentado</a></li>
+                                </ul>
+                              </div>
                             }
                           </div>
                         </td>
@@ -351,6 +359,13 @@
                   </div>
                 </div>
                 
+                @if (absenceError()) {
+                  <div class="alert alert-danger py-2 px-3 mb-4 rounded-3 small d-flex align-items-center gap-2 animate-fade-in">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span>{{ absenceError() }}</span>
+                  </div>
+                }
+                
                 <button type="submit" [disabled]="absenceForm.invalid" class="btn btn-primary w-100 rounded-pill py-3 fw-bold">
                   Enviar Solicitud
                 </button>
@@ -444,6 +459,11 @@
                 </div>
               </div>
             </div>
+            @if (absenceActionError()) {
+              <div class="alert alert-danger py-2 px-3 mt-3 small">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ absenceActionError() }}
+              </div>
+            }
           </div>
         </div>
       </div>
@@ -492,9 +512,11 @@
                 
                 <div class="col-md-6">
                   <label class="form-label small fw-bold">Fecha</label>
-                  <app-input type="date" customClass="form-control-sm" formControlName="fecha" (change)="onDateOrTramiteChange()"
-                             [error]="appointmentForm.get('fecha')?.touched && appointmentForm.get('fecha')?.invalid ? 'La fecha es obligatoria' : null">
-                  </app-input>
+                  <input type="date" class="form-control form-control-sm" formControlName="fecha" (change)="onDateOrTramiteChange()"
+                         [class.is-invalid]="appointmentForm.get('fecha')?.touched && appointmentForm.get('fecha')?.invalid">
+                  <div class="invalid-feedback" *ngIf="appointmentForm.get('fecha')?.touched && appointmentForm.get('fecha')?.invalid">
+                    La fecha es obligatoria
+                  </div>
                 </div>
                 
                 <div class="col-md-6">
@@ -556,6 +578,11 @@
             </div>
             
             <div class="modal-footer-modern">
+              @if (appointmentError()) {
+                <div class="alert alert-danger py-2 px-3 small mb-0 flex-grow-1 text-start">
+                  <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ appointmentError() }}
+                </div>
+              }
               <button type="button" class="btn btn-light" (click)="closeCreateModal()">Cancelar</button>
               <button type="submit" class="btn btn-primary" [disabled]="appointmentForm.invalid || isSavingAppointment()">
                 @if (isSavingAppointment()) {
@@ -570,4 +597,13 @@
       </div>
     }
   </div>
+
+  <app-modal-confirmation
+      [show]="showConfirmModal()"
+      [title]="confirmTitle()"
+      [message]="confirmMessage()"
+      [type]="confirmType()"
+      (confirm)="onConfirmAction()"
+      (cancel)="onCancelAction()">
+  </app-modal-confirmation>
 </div>

@@ -3,27 +3,59 @@
     <aside class="canvas-sidebar">
         <h4 class="fw-bold mb-4">Oficinas / Salas</h4>
         <div class="rooms-list">
-            @for (room of rooms(); track room.id) {
+@for (room of rooms(); track room.id || room) {
                 <div class="room-item" 
                      [class.active]="selectedRoom()?.id === room.id"
                      (click)="selectRoom(room)">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-door-closed"></i>
-                        <span>{{ room.nombreSala }}</span>
+                    <div class="d-flex align-items-center justify-content-between w-100">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-door-closed"></i>
+                            <span>{{ room.nombreSala }}</span>
+                        </div>
+                        <button class="btn btn-link text-danger p-0 border-0 lh-1 delete-room-btn" 
+                                (click)="deleteRoom($event, room)" 
+                                title="Eliminar Sala">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
                     </div>
                     <small class="d-block text-muted mt-1" [class.text-white-50]="selectedRoom()?.id === room.id">
                         {{ room.canvasWidth }}x{{ room.canvasHeight }} px
                     </small>
                 </div>
+
+            }
+            @if (rooms().length === 0) {
+                <div class="text-center p-4">
+                    <p class="text-muted small">No hay salas configuradas</p>
+                </div>
             }
         </div>
+        
+        <button class="btn btn-primary w-100 rounded-pill mt-auto fw-bold py-2 shadow-sm" (click)="openNewSalaModal()">
+            <i class="bi bi-plus-lg me-2"></i>Nueva Sala
+        </button>
     </aside>
 
     <!-- Main Editor Area -->
     <main class="canvas-main">
         <header class="canvas-toolbar">
             <div class="toolbar-group d-flex align-items-center">
-                <div class="tool-selector btn-group me-3">
+                <!-- Mode Switcher -->
+                <div class="view-mode-selector btn-group me-4 p-1 bg-light rounded-pill shadow-sm" style="border: 1px solid #e2e8f0;">
+                    <button class="btn btn-sm rounded-pill px-3 fw-semibold border-0" 
+                            [class.active-mode]="viewMode() === 'design'"
+                            (click)="setViewMode('design')">
+                        <i class="bi bi-pencil-ruler me-1"></i> Diseño
+                    </button>
+                    <button class="btn btn-sm rounded-pill px-3 fw-semibold border-0" 
+                            [class.active-mode]="viewMode() === 'assignment'"
+                            (click)="setViewMode('assignment')">
+                        <i class="bi bi-person-badge me-1"></i> Operativo
+                    </button>
+                </div>
+
+                @if (viewMode() === 'design') {
+                    <div class="tool-selector btn-group me-3">
                     <button class="btn btn-sm" 
                             [class.btn-primary]="canvasMode() === 'select'"
                             [class.btn-outline-primary]="canvasMode() !== 'select'"
@@ -51,14 +83,30 @@
                     {{ showPlan() ? 'Plano' : 'Plano' }}
                 </button>
                 
+                <button class="btn-icon-sm me-2" (click)="fitToScreen()" title="Ajustar a Pantalla">
+                    <i class="bi bi-aspect-ratio"></i>
+                </button>
+                
                 <button class="btn-icon-sm" (click)="toggleFullscreen()" 
                         [title]="isFullscreen() ? 'Salir' : 'Pantalla Completa'">
                     <i class="bi" [class.bi-fullscreen-exit]="isFullscreen()" [class.bi-fullscreen]="!isFullscreen()"></i>
                 </button>
+
+                }
             </div>
             
             <div class="toolbar-group d-flex align-items-center">
-                @if (selectedTableId()) {
+                @if (viewMode() === 'assignment') {
+                    <div class="date-picker-group d-flex align-items-center gap-2 me-4">
+                        <i class="bi bi-calendar3 text-primary"></i>
+                        <input type="date" class="form-control form-control-sm border-0 bg-transparent fw-bold text-primary" 
+                               style="width: 135px; cursor: pointer;"
+                               [ngModel]="selectedDate()"
+                               (ngModelChange)="selectedDate.set($event); loadAssignments()">
+                    </div>
+                }
+
+                @if (selectedTableId() && viewMode() === 'design') {
                     <div class="table-actions d-flex align-items-center gap-2 me-3 pe-3 border-end">
                         <button class="btn btn-sm btn-outline-danger rounded-pill px-3" (click)="deleteSelectedTable()" title="Borrar Mesa">
                             <i class="bi bi-trash"></i>
@@ -73,64 +121,71 @@
                     </div>
                 }
 
-                <div class="main-actions d-flex gap-2">
-                    <button class="btn btn-primary btn-sm rounded-pill px-3" (click)="addTable()">
-                        <i class="bi bi-plus-lg me-1"></i> Nueva
-                    </button>
-                    <button class="btn btn-success btn-sm rounded-pill px-3" (click)="saveDesign()" [disabled]="isSaving()">
-                        <i class="bi bi-cloud-arrow-up me-1"></i> Guardar
-                    </button>
-                </div>
+                @if (viewMode() === 'design') {
+                    <div class="main-actions d-flex gap-2">
+                        <button class="btn btn-primary btn-sm rounded-pill px-3" (click)="addTable()">
+                            <i class="bi bi-plus-lg me-1"></i> Nueva
+                        </button>
+                        <button class="btn btn-success btn-sm rounded-pill px-3" (click)="saveDesign()" [disabled]="isSaving()">
+                            <i class="bi bi-cloud-arrow-up me-1"></i> Guardar
+                        </button>
+                    </div>
+                }
             </div>
         </header>
 
         <div class="canvas-stage-wrapper">
-            <ko-stage #stage [config]="configStage()" (mousedown)="handleStageMouseDown($event)">
+            <ko-stage #stage [config]="configStage()" 
+                      (mousedown)="handleStageMouseDown($event)"
+                      (wheel)="handleWheel($event)">
                 <ko-layer>
-                    <!-- Background 'Office Area' Rect -->
-                    @if (selectedRoom()) {
-                        <ko-rect [config]="{
-                            x: 0,
-                            y: 0,
-                            width: selectedRoom()?.canvasWidth,
-                            height: selectedRoom()?.canvasHeight,
-                            fill: 'white',
-                            shadowBlur: 10,
-                            shadowOpacity: 0.1,
-                            listening: false
-                        }"></ko-rect>
-                    }
+                    <!-- Root group for Pan & Zoom -->
+                    <ko-group [config]="configMainGroup()" (dragend)="onMainGroupDragEnd($event)">
+                        <!-- Background 'Office Area' Rect -->
+                        @if (selectedRoom()) {
+                            <ko-rect [config]="{
+                                x: 0,
+                                y: 0,
+                                width: selectedRoom()?.canvasWidth,
+                                height: selectedRoom()?.canvasHeight,
+                                fill: 'white',
+                                shadowBlur: 10,
+                                shadowOpacity: 0.1,
+                                listening: true
+                            }"></ko-rect>
+                        }
 
-                    
-                    @if (showPlan() && configImage()) {
-                        <ko-image [config]="{ ...configImage(), listening: false }"></ko-image>
-                    }
-                    
-                    @for (table of tables(); track table.id) {
-                        <ko-group [config]="{ 
-                                      id: table.id, 
-                                      name: 'group-' + table.id, 
-                                      draggable: canvasMode() === 'select',
-                                      x: getTableX(table),
-                                      y: getTableY(table)
-                                  }"
-                                  (dragstart)="onDragStart($event)"
-                                  (dragend)="onDragEnd($event, table)"
-                                  (transformend)="onTransformEnd($event, table)"
-                                  (mousedown)="handleTableClick($event, table.id)">
-                            <!-- Table Shape -->
-                            <ko-rect [config]="getTableConfig(table)"></ko-rect>
-                            
-                            <!-- Table Label -->
-                            <ko-text [config]="{ ...getTextConfig(table), listening: false }"></ko-text>
-                        </ko-group>
-                    }
+                        @if (showPlan() && configImage()) {
+                            <ko-image [config]="{ ...configImage(), listening: false }"></ko-image>
+                        }
+                        
+                        @for (table of tables(); track table.id) {
+                            <ko-group [config]="{ 
+                                          id: table.id, 
+                                          name: 'group-' + table.id, 
+                                          draggable: canvasMode() === 'select' && viewMode() === 'design',
+                                          x: getTableX(table),
+                                          y: getTableY(table)
+                                      }"
+                                      (dragstart)="onDragStart($event)"
+                                      (dragend)="onDragEnd($event, table)"
+                                      (transformend)="onTransformEnd($event, table)"
+                                      (click)="handleTableClick($event, table.id)"
+                                      (touchstart)="handleTableClick($event, table.id)">
+                                <!-- Table Shape -->
+                                <ko-rect [config]="getTableConfig(table)"></ko-rect>
+                                
+                                <!-- Table Label -->
+                                <ko-text [config]="{ ...getTextConfig(table), listening: false }"></ko-text>
+                            </ko-group>
+                        }
 
-                    
-                    <ko-transformer #transformer [config]="getTransformerConfig()"></ko-transformer>
+                        <ko-transformer #transformer [config]="getTransformerConfig()"></ko-transformer>
+                    </ko-group>
                 </ko-layer>
             </ko-stage>
         </div>
+
 
         @if (isSaving()) {
             <div class="save-indicator">
@@ -139,4 +194,153 @@
             </div>
         }
     </main>
+
+    <!-- Modales movidos dentro del contenedor principal para evitar problemas de z-index y fullscreen -->
+    
+    <!-- Modal de Asignación de Mesa -->
+    @if (showAssignModal()) {
+        <div class="modal-overlay animate-fade-in" style="display: flex;">
+            <div class="modal-card-modern" style="width: 450px; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                <div class="modal-header-modern p-4 border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="fw-bold mb-0 text-dark fs-5">Asignar Mesa</h3>
+                        <p class="text-muted small mb-0">{{ getSelectedTable()?.nombreMesa }} - {{ selectedDate() | date:'fullDate':'':'es' }}</p>
+                    </div>
+                    <button class="btn-close-modal bg-transparent border-0 fs-4 text-muted" (click)="closeAssignmentModal()">&times;</button>
+                </div>
+                
+                <div class="modal-body-modern p-4">
+                    @if (assignmentError()) {
+                        <div class="alert alert-danger py-2 px-3 mb-4 rounded-3 small d-flex align-items-center gap-2">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span>{{ assignmentError() }}</span>
+                        </div>
+                    }
+
+                    <form [formGroup]="assignmentForm" (ngSubmit)="saveAssignment()">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">Empleado Responsable</label>
+                            <select class="form-select rounded-3" formControlName="idUsuario">
+                                <option value="">Seleccione un empleado...</option>
+                                @for (emp of availableEmployees(); track emp.id) {
+                                    <option [value]="emp.id">{{ emp.nombre }} {{ emp.apellidos }}</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted">Turno de Asignación</label>
+                            <div class="d-flex gap-2">
+                                <input type="radio" class="btn-check" id="turnoCompleto" [value]="'Completo'" formControlName="turno">
+                                <label class="btn btn-outline-secondary btn-sm flex-fill rounded-pill" for="turnoCompleto">Completo</label>
+
+                                <input type="radio" class="btn-check" id="turnoManana" [value]="'Mañana'" formControlName="turno">
+                                <label class="btn btn-outline-secondary btn-sm flex-fill rounded-pill" for="turnoManana">Mañana</label>
+
+                                <input type="radio" class="btn-check" id="turnoTarde" [value]="'Tarde'" formControlName="turno">
+                                <label class="btn btn-outline-secondary btn-sm flex-fill rounded-pill" for="turnoTarde">Tarde</label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between gap-2 mt-4 pt-3 border-top">
+                            @if (getTableAssignment(selectedTableId()!)) {
+                                <button type="button" class="btn btn-outline-danger rounded-pill px-4 fw-semibold" 
+                                        (click)="removeAssignment()" [disabled]="isSavingAssignment()">
+                                    <i class="bi bi-trash3 me-1"></i> Liberar
+                                </button>
+                            } @else {
+                                <div></div>
+                            }
+                            
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold" 
+                                        (click)="closeAssignmentModal()" [disabled]="isSavingAssignment()">Cancelar</button>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold" 
+                                        [disabled]="assignmentForm.invalid || isSavingAssignment()">
+                                    @if (isSavingAssignment()) {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    }
+                                    Guardar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Modal de Nueva/Editar Sala -->
+    @if (showSalaModal()) {
+    <div class="modal-overlay animate-fade-in" style="display: flex;">
+        <div class="modal-card-modern" style="width: 500px; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div class="modal-header-modern p-4 border-bottom d-flex justify-content-between align-items-center">
+                <h3 class="fw-bold mb-0 text-dark fs-5">{{ editingSalaId() ? 'Editar Sala' : 'Configurar Nueva Sala' }}</h3>
+                <button class="btn-close-modal bg-transparent border-0 fs-4 text-muted" (click)="closeSalaModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body-modern p-4">
+                @if (salaError()) {
+                    <div class="alert alert-danger py-2 px-3 mb-4 rounded-3 small d-flex align-items-center gap-2">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <span>{{ salaError() }}</span>
+                    </div>
+                }
+
+                <form [formGroup]="salaForm" (ngSubmit)="saveSala()">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Nombre de la Sala</label>
+                        <input type="text" class="form-control rounded-3 border-light bg-light" formControlName="nombreSala" placeholder="Ej: Planta Principal">
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">Ancho Canvas (px)</label>
+                            <input type="number" class="form-control rounded-3 border-light bg-light" formControlName="canvasWidth">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">Alto Canvas (px)</label>
+                            <input type="number" class="form-control rounded-3 border-light bg-light" formControlName="canvasHeight">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted">Imagen del Plano (Fondo)</label>
+                        <div class="file-upload-wrapper p-4 border-2 border-dashed rounded-4 text-center bg-light" 
+                            style="border-color: #dee2e6 !important; cursor: pointer;"
+                            (click)="fileInput.click()">
+                            <input type="file" #fileInput class="d-none" (change)="onFileSelected($event)" accept="image/*">
+                            <i class="bi bi-cloud-arrow-up display-6 text-primary d-block mb-2"></i>
+                            <span class="small fw-semibold text-dark d-block">
+                                {{ selectedFile ? selectedFile.name : 'Haz clic para seleccionar una imagen' }}
+                            </span>
+                            <span class="text-muted" style="font-size: 0.7rem;">PNG, JPG o WEBP (Máx. 5MB)</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold" (click)="closeSalaModal()" [disabled]="isSavingSala()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" [disabled]="salaForm.invalid || isSavingSala()">
+                            @if (isSavingSala()) {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Guardando...
+                            } @else {
+                                {{ editingSalaId() ? 'Actualizar Sala' : 'Crear Sala' }}
+                            }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    }
+
+    <app-modal-confirmation
+        [show]="showConfirmModal()"
+        [title]="confirmTitle()"
+        [message]="confirmMessage()"
+        [type]="confirmType()"
+        (confirm)="onConfirmAction()"
+        (cancel)="onCancelAction()">
+    </app-modal-confirmation>
 </div>
+

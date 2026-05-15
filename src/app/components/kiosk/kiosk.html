@@ -1,0 +1,73 @@
+<div class="kiosk-container">
+    <div class="kiosk-card">
+        <!-- SECCIÓN IZQUIERDA: CONTENIDO PRINCIPAL -->
+        <div class="kiosk-main">
+            <div class="kiosk-header">
+                <app-logo [size]="150"></app-logo>
+            </div>
+
+            <div class="kiosk-content">
+                @if (!isSuccess()) {
+                    <div class="kiosk-welcome">
+                        <h1>¡Hola! <span class="highlight">Bienvenido a {{ entidadName() }}</span></h1>
+                        <p class="subtitle">Introduce tu DNI para confirmar tu llegada a la cita.</p>
+                    </div>
+
+                    <div class="dni-input-group">
+                        <label>DOCUMENTO DE IDENTIDAD</label>
+                        <div class="input-wrapper" [class.error]="errorMsg()">
+                            <input type="text" [value]="dniValue()" readonly placeholder="12345678A">
+                            <div class="input-icon">
+                                <i class="bi bi-person-badge"></i>
+                            </div>
+                        </div>
+                        @if (errorMsg()) {
+                            <p class="error-text animate-fade-in">{{ errorMsg() }}</p>
+                        }
+                    </div>
+
+                    <button class="btn-confirm" (click)="confirmarLlegada()" [disabled]="isLoading() || dniValue().length < 9">
+                        @if (isLoading()) {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            Procesando...
+                        } @else {
+                            Confirmar mi llegada
+                        }
+                    </button>
+                } @else {
+                    <div class="success-view">
+                        <div class="success-icon">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </div>
+                        <h1>¡Llegada Confirmada!</h1>
+                        <p>Por favor, tome asiento en la sala de espera. En breve será llamado por pantalla.</p>
+                        <button class="btn-confirm outline" (click)="resetKiosk()">Volver</button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- SECCIÓN DERECHA: TECLADO -->
+        <div class="kiosk-keypad-container" *ngIf="!isSuccess()">
+            <div class="keypad-card">
+                <div class="keys-grid" [class.alpha-mode]="keyboardMode() === 'alpha'">
+                    @for (key of currentKeys; track key) {
+                        <button class="key-btn" (click)="onKeyPress(key)">{{ key }}</button>
+                    }
+                    
+                    @if (keyboardMode() === 'numeric') {
+                        <button class="key-btn mode-btn" (click)="toggleKeyboard()">XYZ</button>
+                        <button class="key-btn delete-btn" (click)="onDelete()">
+                            <i class="bi bi-backspace"></i>
+                        </button>
+                    } @else {
+                        <button class="key-btn mode-btn" (click)="toggleKeyboard()">123</button>
+                        <button class="key-btn delete-btn" (click)="onDelete()">
+                            <i class="bi bi-backspace"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

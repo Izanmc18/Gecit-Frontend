@@ -16,7 +16,7 @@ export class AnalyticsService {
   }
 
   getGlobalStats(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/global`, this.getHeaders());
+    return this.http.get(`${this.apiUrl}/global`);
   }
 
   getDashboardSummary(idEntidad: string): Observable<any> {

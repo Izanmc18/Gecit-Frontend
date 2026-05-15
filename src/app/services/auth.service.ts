@@ -63,4 +63,9 @@ export class AuthService {
   getToken(): string | null {
     return localStorage.getItem('token');
   }
+
+  changePassword(newPassword: string): Observable<any> {
+    const headers = { 'Authorization': `Bearer ${this.getToken()}` };
+    return this.http.patch(`${this.apiUrl}/change-first-password`, { newPassword }, { headers });
+  }
 }

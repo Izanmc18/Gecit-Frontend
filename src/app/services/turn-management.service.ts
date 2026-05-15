@@ -6,11 +6,37 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class TurnManagementService {
-  private readonly apiUrl = 'http://localhost:3000/api/v1/turnos-llegada';
+  private readonly apiUrl = 'http://localhost:3000/api/v1/tickets';
 
   constructor(private http: HttpClient) {}
 
-  getDisplayData(idEntidad: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/display?idEntidad=${idEntidad}`);
+  getDisplayData(idEntidad?: string, slug?: string): Observable<any> {
+    let query = '';
+    if (idEntidad) query = `idEntidad=${idEntidad}`;
+    else if (slug) query = `slug=${slug}`;
+    return this.http.get(`${this.apiUrl}/display?${query}`);
+  }
+
+  getTurnEvents(idEntidadOrSlug: string): Observable<any> {
+    return new Observable(observer => {
+      const eventSource = new EventSource(`${this.apiUrl}/events/${idEntidadOrSlug}`);
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        observer.next(data);
+      };
+
+      eventSource.onerror = (error) => {
+        observer.error(error);
+      };
+
+      return () => {
+        eventSource.close();
+      };
+    });
+  }
+
+  checkIn(idEntidad: string, dni: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/checkin`, { idEntidad, dni });
   }
 }

@@ -4,8 +4,18 @@ export interface Sala {
   canvasWidth: number;
   canvasHeight: number;
   colorFondo: string;
+  urlPlano?: string;
   idEntidad: string;
   mesas?: Mesa[];
+}
+
+export interface CreateSalaDto {
+  nombreSala: string;
+  idEntidad: string;
+  canvasWidth?: number;
+  canvasHeight?: number;
+  colorFondo?: string;
+  urlPlano?: string;
 }
 
 export interface Mesa {
@@ -35,4 +45,21 @@ export interface UpdateSalaDto {
   canvasWidth?: number;
   canvasHeight?: number;
   colorFondo?: string;
+  urlPlano?: string;
+}
+
+export enum AssignmentShift {
+  MANANA = 'Mañana',
+  TARDE = 'Tarde',
+  COMPLETO = 'Completo',
+}
+
+export interface DeskAssignment {
+  id: string;
+  idUsuario: string;
+  idMesa: string;
+  fecha: string;
+  turno: AssignmentShift;
+  usuario?: any;
+  mesa?: any;
 }
