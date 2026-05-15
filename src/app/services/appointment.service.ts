@@ -50,4 +50,12 @@ export class AppointmentService {
   createAppointment(appointment: any): Observable<Cita> {
     return this.http.post<Cita>(`${this.apiUrl}/appointments`, appointment, this.getHeaders());
   }
+
+  getMyAppointments(): Observable<Cita[]> {
+    return this.http.get<Cita[]>(`${this.apiUrl}/appointments/my-appointments`, this.getHeaders());
+  }
+
+  cancelMyAppointment(id: string): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${this.apiUrl}/appointments/${id}/cancel`, this.getHeaders());
+  }
 }

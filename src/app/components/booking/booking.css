@@ -184,3 +184,46 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   align-items: center;
   gap: 10px;
 }
+
+/* =====================================================
+   RESPONSIVE — Booking
+   ===================================================== */
+@media (max-width: 768px) {
+  .booking-page {
+    padding: 0;
+    background-size: 14px 14px;
+  }
+
+  .booking-card {
+    border-radius: 1rem;
+    margin: 0.75rem;
+  }
+
+  .sala-chip {
+    min-width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .slot-chip {
+    min-width: calc(33% - 0.5rem);
+    flex: 1 1 calc(33% - 0.5rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .step-dot {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+  }
+
+  .slot-chip {
+    min-width: calc(50% - 0.5rem);
+    flex: 1 1 calc(50% - 0.5rem);
+  }
+
+  .booking-card {
+    margin: 0.5rem;
+    border-radius: 0.85rem;
+  }
+}

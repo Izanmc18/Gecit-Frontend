@@ -6,9 +6,8 @@ import { DashboardAdmin } from './components/dashboard-admin/dashboard-admin';
 import { WaitingRoomComponent } from './components/waiting-room/waiting-room';
 import { DashboardSuperAdmin } from './components/dashboard-super-admin/dashboard-super-admin';
 import { KioskComponent } from './components/kiosk/kiosk';
-
+import { DashboardClient } from './components/dashboard-client/dashboard-client';
 import { authGuard } from './guards/auth.guard';
-
 import { LandingComponent } from './components/landing/landing';
 
 export const routes: Routes = [
@@ -34,6 +33,12 @@ export const routes: Routes = [
     path: 'dashboard-admin',
     component: DashboardAdmin,
     canActivate: [authGuard]
+  },
+  {
+    path: 'dashboard-client',
+    component: DashboardClient,
+    canActivate: [authGuard],
+    data: { roles: ['e51b3a32-3333-4a3b-9a99-b1d5c7f8a123'] }
   }
 ]; 
 

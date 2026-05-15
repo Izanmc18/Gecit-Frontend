@@ -146,7 +146,7 @@ export class Login {
     } else if (userRole === EMPLEADO_ROLE) {
       this.router.navigate(['/dashboard-employees']);
     } else {
-      this.router.navigate(['/booking']);
+      this.router.navigate(['/dashboard-client']);
     }
   }
 }
