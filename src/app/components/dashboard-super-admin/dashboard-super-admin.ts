@@ -87,7 +87,6 @@ export class DashboardSuperAdmin implements OnInit, OnDestroy {
   entityForm = this.fb.group({
     nombre: ['', [Validators.required, Validators.minLength(3)]],
     dominio: ['', [Validators.required]],
-    logoUrl: [''],
     tramitesString: [''],
   });
 
