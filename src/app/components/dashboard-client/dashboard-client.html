@@ -1,217 +1,207 @@
-<!-- Hamburger side overlay -->
-<div class="side-overlay" [class.open]="isSideMenuOpen()" (click)="toggleSideMenu()"></div>
+<app-navbar [navItems]="navItems" [activeTab]="activeTab()" (tabChange)="onTabChange($event)"></app-navbar>
 
-<!-- Sidebar mobile menu -->
-<div class="side-drawer" [class.open]="isSideMenuOpen()">
-  <div class="side-drawer-header">
-    <img src="assets/images/logo/icono.png" alt="GECIT Logo" class="side-logo">
-    <span class="side-brand">GECIT</span>
-    <button class="side-close-btn" (click)="toggleSideMenu()">
-      <i class="bi bi-x-lg"></i>
-    </button>
-  </div>
-  <div class="side-user">
-    <div class="avatar-circle bg-primary-subtle text-primary">{{ userName[0]?.toUpperCase() }}</div>
-    <div>
-      <div class="fw-bold">{{ userName }}</div>
-      <div class="text-muted" style="font-size:0.75rem;">Cliente</div>
-    </div>
-  </div>
-  <nav class="side-nav">
-    @for (item of navItems; track item.value) {
-      <div class="side-nav-item" [class.active]="activeTab() === item.value" (click)="onTabChange(item.value)">
-        <i [class]="item.icon"></i>
-        <span>{{ item.label }}</span>
-      </div>
-    }
-    <div class="side-nav-item" (click)="goToBooking()">
-      <i class="bi bi-plus-circle"></i>
-      <span>Nueva Cita</span>
-    </div>
-  </nav>
-</div>
-
-<!-- Top Navbar -->
-<nav class="client-nav">
-  <div class="client-nav-left">
-    <button class="hamburger-btn" (click)="toggleSideMenu()">
-      <i class="bi bi-list"></i>
-    </button>
-    <img src="assets/images/logo/icono.png" alt="GECIT Logo" class="nav-logo">
-    <span class="nav-brand">GECIT</span>
-  </div>
-
-  <div class="nav-tabs-desktop">
-    @for (item of navItems; track item.value) {
-      <div class="nav-tab" [class.active]="activeTab() === item.value" (click)="onTabChange(item.value)">
-        <i [class]="item.icon"></i> {{ item.label }}
-      </div>
-    }
-  </div>
-
-  <div class="nav-user-area">
-    <button class="btn-new-appointment d-none d-md-flex" (click)="goToBooking()">
-      <i class="bi bi-plus-circle me-1"></i> Nueva cita
-    </button>
-    <div class="user-info d-none d-md-block">
-      <div class="user-name">{{ userName }}</div>
-      <div class="user-role">Cliente</div>
-    </div>
-    <div class="avatar-circle bg-primary-subtle text-primary d-none d-md-flex">{{ userName[0]?.toUpperCase() }}</div>
-    <button class="btn-logout-nav" (click)="logout()">
-      <i class="bi bi-box-arrow-right"></i>
-    </button>
-  </div>
-</nav>
-
-<!-- Main Content -->
-<div class="client-layout">
-  <main class="client-main">
-
-    <!-- Welcome Banner -->
-    <div class="welcome-banner">
+<main class="dashboard-container py-5">
+  <div class="container">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-5 animate-slide-down">
       <div>
-        <p class="welcome-label">BIENVENIDO DE NUEVO</p>
-        <h1 class="welcome-title">Hola, {{ userName }} 👋</h1>
-        <p class="welcome-sub">Consulta y gestiona tus citas de forma rápida y sencilla desde aquí.</p>
+        <h1 class="display-5 fw-bold mb-1">Hola, {{ userName }} 👋</h1>
+        <p class="text-muted lead mb-0">Gestiona tus citas y consulta tu historial de trámites.</p>
       </div>
-      <button class="btn-booking-cta d-none d-md-flex" (click)="goToBooking()">
-        <i class="bi bi-plus-circle me-2"></i> Reservar nueva cita
-      </button>
     </div>
 
-    <!-- Tabs mobile -->
-    <div class="mobile-tabs d-flex d-md-none">
-      @for (item of navItems; track item.value) {
-        <button class="mobile-tab-btn" [class.active]="activeTab() === item.value" (click)="onTabChange(item.value)">
-          {{ item.label }}
-        </button>
-      }
-    </div>
-
-    <!-- Loading -->
-    @if (isLoading()) {
-      <div class="loading-state">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p>Cargando tus citas...</p>
-      </div>
-    } @else {
-
-      <!-- TAB: Mis citas (futuras) -->
+    <!-- Content Area -->
+    <div class="content-body">
+      <!-- Tab: Dashboard (Próximas Citas) -->
       @if (activeTab() === 'dashboard') {
-        <section class="section-block">
-          <div class="section-header">
-            <h2 class="section-title">Citas Futuras</h2>
-            <span class="badge-count">{{ futureCitas().length }}</span>
+        <div class="animate-fade-in">
+          <div class="section-header mb-4 d-flex align-items-center justify-content-between">
+            <h2 class="h3 fw-bold mb-0">Mis próximas citas</h2>
+            <span class="badge bg-primary-subtle text-primary rounded-pill px-3">{{ futureCitas().length }} pendientes</span>
           </div>
 
-          @if (futureCitas().length === 0) {
-            <div class="empty-state">
-              <i class="bi bi-calendar-x empty-icon"></i>
-              <p>No tienes citas próximas.</p>
-              <button class="btn-booking-empty" (click)="goToBooking()">
-                <i class="bi bi-plus-circle me-1"></i> Reservar una cita
-              </button>
-            </div>
-          } @else {
-            <div class="citas-list">
+          @if (!isLoading()) {
+            <div class="row g-4">
               @for (cita of futureCitas(); track cita.id) {
-                <div class="cita-card">
-                  <div class="cita-date-badge">
-                    <span class="cita-month">{{ cita.fechaHora | date:'MMM':'':'es' | uppercase }}</span>
-                    <span class="cita-day">{{ cita.fechaHora | date:'dd' }}</span>
-                  </div>
-                  <div class="cita-info">
-                    <div class="cita-tramite">{{ cita.tramite?.nombreTramite || 'Trámite' }}</div>
-                    <div class="cita-details">
-                      <span><i class="bi bi-clock"></i> {{ cita.fechaHora | date:'HH:mm' }}</span>
-                      @if (cita.mesa) {
-                        <span><i class="bi bi-geo-alt"></i> Mesa {{ cita.mesa.numero || cita.mesa.nombreMesa }}</span>
-                      }
+                <div class="col-12 col-md-6 col-lg-4">
+                  <div class="appointment-card animate-scale-in cursor-pointer" (click)="openDetailModal(cita)">
+                    <div class="card-header-accent" [ngClass]="getAppointmentColorClass(cita)"></div>
+                    <div class="p-4">
+                      <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="status-badge" [ngClass]="getAppointmentColorClass(cita)">
+                          {{ cita.estado }}
+                        </div>
+                        <div class="date-badge text-primary fw-bold">
+                          <i class="bi bi-calendar-event me-1"></i>
+                          {{ cita.fechaHora | date:'dd MMM, yyyy' }}
+                        </div>
+                      </div>
+
+                      <h3 class="h5 fw-bold mb-1 text-truncate">{{ cita.tramite?.nombreTramite || 'Cita de Gestión' }}</h3>
+                      <div class="text-muted small mb-4">
+                        <i class="bi bi-clock me-1"></i> {{ cita.fechaHora | date:'HH:mm' }}
+                        <span class="mx-2">|</span>
+                        <i class="bi bi-geo-alt me-1"></i> {{ cita.mesa?.nombreMesa || 'Mesa asignada' }}
+                      </div>
+
+                      <div class="d-flex gap-2 pt-3 border-top">
+                        <button class="btn btn-outline-danger btn-sm rounded-pill px-3 flex-grow-1" 
+                                (click)="$event.stopPropagation(); confirmCancel(cita)"
+                                [disabled]="cancellingId() === cita.id">
+                          @if (cancellingId() !== cita.id) {
+                            <span>Cancelar cita</span>
+                          } @else {
+                            <span class="spinner-border spinner-border-sm"></span>
+                          }
+                        </button>
+                        <button class="btn btn-primary btn-sm rounded-pill px-3 flex-grow-1" (click)="$event.stopPropagation(); openDetailModal(cita)">
+                          Detalles
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div class="cita-actions">
-                    <button class="btn-cancel-cita" (click)="confirmCancel(cita)" [disabled]="cancellingId() === cita.id">
-                      @if (cancellingId() === cita.id) {
-                        <div class="spinner-border spinner-border-sm" role="status"></div>
-                      } @else {
-                        Cancelar
-                      }
-                    </button>
+                </div>
+              } @empty {
+                <div class="col-12 text-center py-5">
+                  <div class="empty-state py-5 bg-white rounded-4 shadow-sm border border-light">
+                    <i class="bi bi-calendar-x text-muted display-1 opacity-25"></i>
+                    <h3 class="h5 mt-4 text-muted fw-bold">No tienes citas programadas</h3>
+                    <p class="text-muted">Tus próximas reservas aparecerán en esta sección.</p>
                   </div>
                 </div>
               }
-            </div>
-          }
-        </section>
-      }
-
-      <!-- TAB: Historial (pasadas) -->
-      @if (activeTab() === 'historial') {
-        <section class="section-block">
-          <div class="section-header">
-            <h2 class="section-title">Historial de Citas</h2>
-            <span class="badge-count">{{ pastCitas().length }}</span>
-          </div>
-
-          @if (pastCitas().length === 0) {
-            <div class="empty-state">
-              <i class="bi bi-clock-history empty-icon"></i>
-              <p>Aún no tienes citas en el historial.</p>
             </div>
           } @else {
-            <div class="citas-list">
-              @for (cita of pastCitas(); track cita.id) {
-                <div class="cita-card past">
-                  <div class="cita-date-badge past-badge">
-                    <span class="cita-month">{{ cita.fechaHora | date:'MMM':'':'es' | uppercase }}</span>
-                    <span class="cita-day">{{ cita.fechaHora | date:'dd' }}</span>
-                  </div>
-                  <div class="cita-info">
-                    <div class="cita-tramite">{{ cita.tramite?.nombreTramite || 'Trámite' }}</div>
-                    <div class="cita-details">
-                      <span><i class="bi bi-clock"></i> {{ cita.fechaHora | date:'HH:mm' }}</span>
-                      <span class="estado-badge" [class]="'estado-' + cita.estado?.toLowerCase()?.replace(' ','-')">
-                        {{ cita.estado }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="cita-arrow">
-                    <i class="bi bi-chevron-right"></i>
-                  </div>
-                </div>
-              }
+            <div class="d-flex justify-content-center align-items-center py-5 w-100">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+              </div>
             </div>
           }
-        </section>
+        </div>
       }
 
-    }
+      <!-- Tab: Calendario -->
+      @if (activeTab() === 'calendario') {
+        <div class="animate-fade-in">
+          <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="card-header bg-white py-4 px-4 border-0">
+              <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                  <h2 class="h4 fw-bold mb-0 text-primary">{{ currentMonthDate() | date:'MMMM yyyy':'':'es' | titlecase }}</h2>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-icon btn-sm" (click)="prevMonth()"><i class="bi bi-chevron-left"></i></button>
+                    <button class="btn btn-icon btn-sm" (click)="nextMonth()"><i class="bi bi-chevron-right"></i></button>
+                  </div>
+                </div>
+                <div class="legend d-flex gap-3 small">
+                  <div class="d-flex align-items-center gap-1"><div class="dot green"></div> Realizada</div>
+                  <div class="d-flex align-items-center gap-1"><div class="dot orange"></div> Pendiente</div>
+                  <div class="d-flex align-items-center gap-1"><div class="dot red"></div> Cancelada</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="card-body p-0 border-top">
+              <div class="month-grid-header bg-light">
+                <div>LUN</div><div>MAR</div><div>MIÉ</div><div>JUE</div><div>VIE</div><div>SÁB</div><div>DOM</div>
+              </div>
+              <div class="month-grid-body">
+                @for (dayObj of miniCalendarDays(); track dayObj.date) {
+                  <div class="month-day-cell" 
+                       [ngClass]="{'other-month': !dayObj.isCurrentMonth, 'today': isToday(dayObj.date)}">
+                    <span class="day-number">{{ dayObj.date.getDate() }}</span>
+                    <div class="day-events">
+                      @for (cita of getAppointmentsForDay(dayObj.date); track cita.id) {
+                        <div class="month-event-pill shadow-sm" 
+                             [ngClass]="getAppointmentColorClass(cita)"
+                             (click)="openDetailModal(cita)">
+                          <span class="dot"></span>
+                          <span class="time fw-bold">{{ cita.fechaHora | date:'HH:mm' }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
 
-  </main>
-</div>
+      <!-- Tab: Historial -->
+      @if (activeTab() === 'historial') {
+        <div class="animate-fade-in">
+          <div class="section-header mb-4">
+            <h2 class="h3 fw-bold mb-0">Historial de citas</h2>
+            <p class="text-muted">Consulta tus gestiones pasadas y su estado final.</p>
+          </div>
 
-<!-- Mobile CTA -->
-<div class="mobile-fab d-flex d-md-none" (click)="goToBooking()">
-  <i class="bi bi-plus-lg"></i>
-</div>
+          <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                  <tr>
+                    <th class="ps-4">Trámite</th>
+                    <th>Fecha y Hora</th>
+                    <th>Estado</th>
+                    <th class="pe-4 text-end">Detalles</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (cita of pastCitas(); track cita.id) {
+                    <tr class="cursor-pointer" (click)="openDetailModal(cita)">
+                      <td class="ps-4 py-3">
+                        <div class="fw-bold">{{ cita.tramite?.nombreTramite || 'Cita' }}</div>
+                        <div class="text-muted small">{{ cita.mesa?.nombreMesa || 'Sin mesa' }}</div>
+                      </td>
+                      <td>{{ cita.fechaHora | date:'dd/MM/yyyy HH:mm' }}</td>
+                      <td>
+                        <span class="badge rounded-pill px-3 py-1" [ngClass]="getAppointmentColorClass(cita)">
+                          {{ cita.estado }}
+                        </span>
+                      </td>
+                      <td class="pe-4 text-end">
+                        <button class="btn btn-icon btn-sm text-primary">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="4" class="text-center py-5 text-muted small">
+                        No hay registros en el historial.
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</main>
 
-<!-- Footer -->
 <app-footer></app-footer>
 
-<!-- Confirm Cancel Modal -->
-@if (showConfirm()) {
-  <div class="modal-overlay">
-    <div class="confirm-modal">
-      <div class="confirm-icon">
-        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
-      </div>
-      <h3>¿Cancelar esta cita?</h3>
-      <p>La cita del <strong>{{ citaToCancel()?.fechaHora | date:'dd/MM/yyyy' }}</strong> a las <strong>{{ citaToCancel()?.fechaHora | date:'HH:mm' }}</strong> será eliminada y el hueco quedará libre.</p>
-      <div class="confirm-actions">
-        <button class="btn-confirm-cancel" (click)="cancelConfirm()">Mantener cita</button>
-        <button class="btn-confirm-ok" (click)="doCancel()">Sí, cancelar</button>
-      </div>
-    </div>
-  </div>
-}
+<!-- Modal de Detalle de Cita -->
+<app-appointment-detail 
+  [show]="showDetailModal()" 
+  [cita]="selectedAppointment()"
+  [isClient]="true"
+  (close)="showDetailModal.set(false)"
+  (cancel)="confirmCancel($event)">
+</app-appointment-detail>
+
+<!-- Modal de Confirmación de Cancelación -->
+<app-modal-confirmation
+  [show]="showConfirm()"
+  title="¿Cancelar cita?"
+  message="Esta acción liberará tu turno y otra persona podrá ocuparlo. ¿Estás seguro?"
+  confirmText="Sí, cancelar"
+  type="danger"
+  (confirm)="doCancel()"
+  (cancel)="cancelConfirm()">
+</app-modal-confirmation>

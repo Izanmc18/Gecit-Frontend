@@ -2,12 +2,12 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { LogoComponent } from '../ui/logo/logo';
-import { Footer } from '../footer/footer';
+import { FooterComponent } from '../footer/footer';
 
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [CommonModule, RouterModule, LogoComponent, Footer],
+  imports: [CommonModule, RouterModule, LogoComponent, FooterComponent],
   templateUrl: './landing.html',
   styleUrls: ['./landing.css']
 })

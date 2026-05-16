@@ -9,10 +9,16 @@ import { KioskComponent } from './components/kiosk/kiosk';
 import { DashboardClient } from './components/dashboard-client/dashboard-client';
 import { authGuard } from './guards/auth.guard';
 import { LandingComponent } from './components/landing/landing';
+import { PrivacyComponent } from './components/legal/privacy/privacy';
+import { TermsComponent } from './components/legal/terms/terms';
+import { ContactComponent } from './components/contact/contact';
 
 export const routes: Routes = [
   { path: '', component: LandingComponent },
   { path: 'login', component: Login },
+  { path: 'privacy', component: PrivacyComponent },
+  { path: 'terms', component: TermsComponent },
+  { path: 'contact', component: ContactComponent },
   { path: 'booking/:domain', component: Booking },
   { path: 'booking', redirectTo: '/booking/innovasur.com', pathMatch: 'full' },
   { path: 'waiting-room/:slug', component: WaitingRoomComponent },

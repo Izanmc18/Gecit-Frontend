@@ -1,0 +1,29 @@
+.legal-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+}
+
+main {
+  flex: 1;
+}
+
+.content-wrapper {
+  max-width: 800px;
+}
+
+h1 {
+  color: #0f172a;
+}
+
+h2 {
+  color: #1e293b;
+  margin-top: 2.5rem;
+}
+
+p {
+  line-height: 1.8;
+  color: #475569;
+  font-size: 1.1rem;
+}

@@ -94,6 +94,8 @@ export class DashboardSuperAdmin implements OnInit, OnDestroy {
     nombre: ['', Validators.required],
     apellidos: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
+    dni: ['', [Validators.required, this.dniValidator]],
+    telefono: ['', [Validators.required, Validators.pattern(/^[679][0-9]{8}$/)]],
     password: ['12345678', [Validators.minLength(6)]],
     idRol: ['', Validators.required],
     idEntidad: [''],
@@ -160,6 +162,29 @@ export class DashboardSuperAdmin implements OnInit, OnDestroy {
     const size = Number(this.pageSize());
     return Math.ceil(this.filteredUsers().length / size);
   });
+
+  /** Validador DNI/NIE con verificación de letra de control */
+  dniValidator(control: any): { [key: string]: any } | null {
+    const value = control.value;
+    if (!value) return null;
+
+    const validChars = 'TRWAGMYFPDXBNJZSQVHLCKE';
+    const nifRexp = /^[0-9]{8}[TRWAGMYFPDXBNJZSQVHLCKE]$/i;
+    const nieRexp = /^[XYZ][0-9]{7}[TRWAGMYFPDXBNJZSQVHLCKE]$/i;
+    const str = value.toString().toUpperCase().replace(/\s|-/g, '');
+
+    if (!nifRexp.test(str) && !nieRexp.test(str)) return { invalidDni: true };
+
+    let nie = str;
+    if (nieRexp.test(str)) {
+      nie = nie.replace('X', '0').replace('Y', '1').replace('Z', '2');
+    }
+
+    const letter = str.substr(-1);
+    const charIndex = parseInt(nie.substr(0, 8), 10) % 23;
+
+    return validChars.charAt(charIndex) === letter ? null : { invalidDni: true };
+  }
 
   private refreshInterval: any;
 

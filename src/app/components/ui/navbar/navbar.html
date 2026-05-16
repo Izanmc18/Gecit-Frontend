@@ -1,10 +1,21 @@
 <nav class="top-nav">
-    <div class="brand">
-        <img src="assets/images/logo/icono.png" alt="GECIT Logo">
-        <span>{{ title }}</span>
+    <div class="nav-left">
+        <button class="btn-hamburger hide-on-desktop" (click)="toggleMenu()">
+            <i class="bi" [class.bi-list]="!isMenuOpen()" [class.bi-x-lg]="isMenuOpen()"></i>
+        </button>
+        <div class="brand">
+            <img src="assets/images/logo/icono.png" alt="GECIT Logo">
+            <span>{{ title }}</span>
+        </div>
     </div>
     
-    <div class="nav-links">
+    <!-- Desktop Links -->
+    <div class="nav-links hide-on-mobile">
+        @if (showHomeButton) {
+            <a routerLink="/" class="nav-item" style="text-decoration: none; color: var(--primary-color); font-weight: 700;">
+                <i class="bi bi-house-door"></i> Inicio
+            </a>
+        }
         @for (item of navItems; track item.value) {
             <div class="nav-item" 
                  [class.active]="activeTab === item.value" 
@@ -14,14 +25,71 @@
         }
     </div>
 
-    <div class="user-profile">
-
-        <div style="text-align: right;">
-            <div style="font-weight: 800; font-size: 0.85rem;">{{ currentUser()?.nombre }}</div>
-            <div style="font-size: 0.7rem; color: #64748b;">{{ userRoleName }}</div>
+    <div class="nav-right">
+        <div class="user-profile hide-on-mobile">
+            <div class="user-info">
+                <div class="user-name">{{ currentUser()?.nombre }}</div>
+                <div class="user-role">{{ userRoleName }}</div>
+            </div>
+            <button class="btn-logout" (click)="logout()" title="Cerrar Sesión">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
         </div>
-        <button class="btn-logout" (click)="logout()">
-            <i class="bi bi-box-arrow-right"></i>
-        </button>
+        
+        <!-- Mobile Toggle only profile icon/initials on very small screens -->
+        <div class="mobile-user-avatar show-on-mobile">
+            <div class="avatar-circle" (click)="toggleMenu()">
+                {{ currentUser()?.nombre?.charAt(0) }}
+            </div>
+        </div>
     </div>
 </nav>
+
+<!-- Mobile Drawer Menu -->
+<div class="mobile-drawer-overlay" [class.show]="isMenuOpen()" (click)="toggleMenu()"></div>
+<div class="mobile-drawer" [class.show]="isMenuOpen()">
+    <div class="drawer-header">
+        <div class="brand">
+            <img src="assets/images/logo/icono.png" alt="GECIT Logo">
+            <span>{{ title }}</span>
+        </div>
+        <button class="btn-close-drawer" (click)="toggleMenu()">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+
+    <div class="drawer-user-info p-4 border-bottom">
+        <div class="d-flex align-items-center gap-3" style="display: flex; align-items: center; gap: 1rem;">
+            <div class="avatar-circle-lg">
+                {{ currentUser()?.nombre?.charAt(0) }}
+            </div>
+            <div>
+                <div style="font-weight: bold; color: #1e293b;">{{ currentUser()?.nombre }}</div>
+                <div style="font-size: 0.85rem; color: #64748b;">{{ userRoleName }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="drawer-links">
+        @if (showHomeButton) {
+            <a routerLink="/" class="drawer-item" (click)="toggleMenu()" style="text-decoration: none; color: var(--primary-color); font-weight: 700;">
+                <i class="bi bi-house-door"></i>
+                <span>Inicio</span>
+            </a>
+        }
+        @for (item of navItems; track item.value) {
+            <div class="drawer-item" 
+                 [class.active]="activeTab === item.value" 
+                 (click)="onTabClick(item.value); toggleMenu()">
+                <i [class]="item.icon"></i>
+                <span>{{ item.label }}</span>
+            </div>
+        }
+    </div>
+
+    <div class="drawer-footer mt-auto p-4 border-top" style="margin-top: auto; padding: 1.5rem; border-top: 1px solid #f1f5f9;">
+        <button class="btn-logout-mobile" (click)="logout()">
+            <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
+        </button>
+    </div>
+</div>

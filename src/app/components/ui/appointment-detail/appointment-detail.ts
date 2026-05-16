@@ -14,11 +14,13 @@ export class AppointmentDetailComponent {
   @Input() cita: Cita | null = null;
   @Input() show: boolean = false;
   @Input() isAdmin: boolean = false;
+  @Input() isClient: boolean = false;
   
   @Output() close = new EventEmitter<void>();
   @Output() statusChange = new EventEmitter<{ cita: Cita, status: string }>();
   @Output() callClient = new EventEmitter<Cita>();
   @Output() attendClient = new EventEmitter<Cita>();
+  @Output() cancel = new EventEmitter<Cita>();
 
   closeModal() {
     this.close.emit();
@@ -41,6 +43,13 @@ export class AppointmentDetailComponent {
   onAttend() {
     if (this.cita) {
       this.attendClient.emit(this.cita);
+      this.closeModal();
+    }
+  }
+
+  onCancel() {
+    if (this.cita) {
+      this.cancel.emit(this.cita);
       this.closeModal();
     }
   }

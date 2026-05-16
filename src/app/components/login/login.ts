@@ -6,12 +6,13 @@ import { AuthService } from '../../services/auth.service';
 import { InputField } from '../ui/input/input';
 import { Button } from '../ui/button/button';
 import { LogoComponent } from '../ui/logo/logo';
-import { Footer } from '../footer/footer';
+import { FooterComponent } from '../footer/footer';
+import { dniValidator } from '../booking/booking';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, InputField, Button, LogoComponent, Footer],
+  imports: [CommonModule, ReactiveFormsModule, InputField, Button, LogoComponent, FooterComponent],
   templateUrl: './login.html',
   styleUrls: ['./login.css']
 })
@@ -43,6 +44,8 @@ export class Login {
   registerForm = this.fb.group({
     nombre: ['', [Validators.required, Validators.minLength(2)]],
     apellidos: ['', [Validators.required, Validators.minLength(2)]],
+    dni: ['', [Validators.required, dniValidator()]],
+    telefono: ['', [Validators.required, Validators.pattern(/^[679][0-9]{8}$/)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]]
   });
@@ -90,8 +93,7 @@ export class Login {
     this.cdr.detectChanges();
 
     const data = {
-      ...this.registerForm.value,
-      idRol: 'e51b3a32-3333-4a3b-9a99-b1d5c7f8a123' // Cliente
+      ...this.registerForm.value
     };
 
     this.authService.register(data as any).subscribe({

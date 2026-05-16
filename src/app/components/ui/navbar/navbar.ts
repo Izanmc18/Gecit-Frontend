@@ -1,7 +1,7 @@
-import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../services/auth.service';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 export interface NavItem {
   label: string;
@@ -12,7 +12,7 @@ export interface NavItem {
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './navbar.html',
   styleUrls: ['./navbar.css']
 })
@@ -23,9 +23,16 @@ export class NavbarComponent {
   @Input() activeTab: string = '';
   @Input() navItems: NavItem[] = [];
   @Input() title: string = 'GECIT Admin';
+  @Input() showHomeButton: boolean = false;
   @Output() tabChange = new EventEmitter<string>();
 
+  isMenuOpen = signal(false);
+
   currentUser = this.authService.currentUser;
+
+  toggleMenu() {
+    this.isMenuOpen.update(v => !v);
+  }
 
   get userRoleName(): string {
     const roleId = this.currentUser()?.idRol;

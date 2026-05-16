@@ -294,9 +294,23 @@
                         <label>Email</label>
                         <input type="email" formControlName="email" class="form-control">
                     </div>
-                    <div class="mb-3">
-                        <label>Dominio Correo</label>
-                        <input type="text" formControlName="dominio" class="form-control" placeholder="ejemplo.com">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label>DNI / NIE</label>
+                            <input type="text" formControlName="dni" class="form-control" placeholder="12345678A"
+                                   [class.is-invalid]="userForm.get('dni')?.touched && userForm.get('dni')?.invalid">
+                            @if (userForm.get('dni')?.touched && userForm.get('dni')?.invalid) {
+                                <small class="text-danger">DNI no válido</small>
+                            }
+                        </div>
+                        <div>
+                            <label>Teléfono</label>
+                            <input type="text" formControlName="telefono" class="form-control" placeholder="600000000"
+                                   [class.is-invalid]="userForm.get('telefono')?.touched && userForm.get('telefono')?.invalid">
+                            @if (userForm.get('telefono')?.touched && userForm.get('telefono')?.invalid) {
+                                <small class="text-danger">Teléfono no válido</small>
+                            }
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label>Contraseña</label>

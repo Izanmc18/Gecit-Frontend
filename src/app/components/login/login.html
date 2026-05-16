@@ -85,7 +85,11 @@
       </div>
 
       <div class="col-12 col-lg-7 order-1 order-lg-2 text-center text-lg-center pl-lg-5 mb-5 mb-lg-0">
-        <app-logo [size]="750" customClass="mx-auto"></app-logo>
+        <!-- Logo completo para Escritorio -->
+        <app-logo [size]="750" customClass="mx-auto d-none d-lg-block"></app-logo>
+        
+        <!-- Icono reducido para Tablet y Móvil -->
+        <app-logo [size]="120" [useIcon]="true" customClass="mx-auto d-block d-lg-none mb-4"></app-logo>
       </div>
 
     </div>
@@ -129,6 +133,25 @@
             placeholder="Ej: Pérez"
             formControlName="apellidos"
             [error]="(registerForm.get('apellidos')?.touched && registerForm.get('apellidos')?.errors?.['required']) ? 'Obligatorio' : null"
+          ></app-input>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <app-input
+            label="DNI/NIE"
+            placeholder="Ej: 12345678A"
+            formControlName="dni"
+            [error]="(registerForm.get('dni')?.touched && registerForm.get('dni')?.errors?.['invalidDni']) ? 'DNI/NIE inválido' : (registerForm.get('dni')?.touched && registerForm.get('dni')?.errors?.['required'] ? 'Obligatorio' : null)"
+          ></app-input>
+        </div>
+        <div class="col-md-6">
+          <app-input
+            label="Teléfono"
+            placeholder="Ej: 600123456"
+            formControlName="telefono"
+            [error]="(registerForm.get('telefono')?.touched && registerForm.get('telefono')?.errors?.['pattern']) ? 'Teléfono inválido' : (registerForm.get('telefono')?.touched && registerForm.get('telefono')?.errors?.['required'] ? 'Obligatorio' : null)"
           ></app-input>
         </div>
       </div>
