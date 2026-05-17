@@ -1,6 +1,6 @@
 .canvas-admin-container {
     display: flex;
-    height: 100%;
+    height: calc(100vh - 70px);
     background-color: #f8fafc;
     overflow: hidden;
     transition: all 0.3s ease;
