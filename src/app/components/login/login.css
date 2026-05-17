@@ -1,3 +1,33 @@
+/* Botón volver al inicio */
+.login-back-home {
+  padding-top: 0.5rem;
+}
+
+.back-home-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #64748b;
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.2s ease;
+}
+
+.back-home-btn:hover {
+  color: #2563eb;
+  gap: 0.6rem;
+}
+
+.back-home-btn svg {
+  transition: transform 0.2s ease;
+}
+
+.back-home-btn:hover svg {
+  transform: translateX(-3px);
+}
+
 .login-wrapper {
   min-height: 100vh;
   background: linear-gradient(to bottom right, #eff6ff, #ffffff, #f0fdfa);
