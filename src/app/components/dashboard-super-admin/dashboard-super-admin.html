@@ -190,10 +190,9 @@
                 <div class="filter-group">
                     <select class="filter-select" (change)="roleFilter.set($any($event.target).value); currentPage.set(1)">
                         <option value="">Todos los Roles</option>
-                        <option value="e51b3a32-0000-4a3b-9a99-b1d5c7f8a120">SuperAdmin</option>
-                        <option value="e51b3a32-1111-4a3b-9a99-b1d5c7f8a121">Admin</option>
-                        <option value="e51b3a32-2222-4a3b-9a99-b1d5c7f8a122">Empleado</option>
-                        <option value="e51b3a32-3333-4a3b-9a99-b1d5c7f8a123">Cliente</option>
+                        @for (rol of roles(); track rol.id) {
+                            <option [value]="rol.id">{{ rol.nombreRol }}</option>
+                        }
                     </select>
                 </div>
             </div>
@@ -221,11 +220,11 @@
                                 <td>{{ user.email }}</td>
                                 <td>
                                     <span class="role-tag" [ngClass]="{
-                                        'role-super': user.idRol === 'e51b3a32-0000-4a3b-9a99-b1d5c7f8a120',
-                                        'role-admin': user.idRol === 'e51b3a32-1111-4a3b-9a99-b1d5c7f8a121',
-                                        'role-emp': user.idRol === 'e51b3a32-2222-4a3b-9a99-b1d5c7f8a122'
+                                        'role-super': getRoleName(user.idRol) === 'SuperAdmin',
+                                        'role-admin': getRoleName(user.idRol) === 'Admin',
+                                        'role-emp': getRoleName(user.idRol) === 'Empleado'
                                     }">
-                                        {{ getRoleName(user.idRol) }}
+                                        {{ getRoleName(user.idRol) === 'Admin' ? 'Admin de Entidad' : getRoleName(user.idRol) }}
                                     </span>
                                 </td>
                                 <td>
@@ -320,10 +319,9 @@
                         <label>Rol del Usuario</label>
                         <select formControlName="idRol" class="form-control">
                             <option value="">Seleccione un rol...</option>
-                            <option value="e51b3a32-0000-4a3b-9a99-b1d5c7f8a120">SuperAdmin</option>
-                            <option value="e51b3a32-1111-4a3b-9a99-b1d5c7f8a121">Admin de Entidad</option>
-                            <option value="e51b3a32-2222-4a3b-9a99-b1d5c7f8a122">Empleado</option>
-                            <option value="e51b3a32-3333-4a3b-9a99-b1d5c7f8a123">Cliente</option>
+                            @for (rol of roles(); track rol.id) {
+                                <option [value]="rol.id">{{ rol.nombreRol === 'Admin' ? 'Admin de Entidad' : rol.nombreRol }}</option>
+                            }
                         </select>
                     </div>
 
