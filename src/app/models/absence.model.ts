@@ -1,8 +1,7 @@
 export enum TipoAusencia {
   VACACIONES = 'Vacaciones',
-  ENFERMEDAD = 'Enfermedad',
+  BAJA_MEDICA = 'Baja Medica',
   ASUNTOS_PROPIOS = 'Asuntos Propios',
-  OTRO = 'Otro',
 }
 
 export interface AbsenceRequest {

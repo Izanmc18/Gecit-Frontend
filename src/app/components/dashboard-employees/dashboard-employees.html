@@ -322,9 +322,8 @@
                   <div class="input-container" [class.is-invalid]="absenceForm.get('tipo')?.touched && absenceForm.get('tipo')?.invalid">
                     <select formControlName="tipo" class="form-select rounded-3" [class.is-invalid]="absenceForm.get('tipo')?.touched && absenceForm.get('tipo')?.invalid">
                       <option [value]="tipoAusencia.VACACIONES">Vacaciones</option>
-                      <option [value]="tipoAusencia.ENFERMEDAD">Enfermedad</option>
+                      <option [value]="tipoAusencia.BAJA_MEDICA">Baja Médica</option>
                       <option [value]="tipoAusencia.ASUNTOS_PROPIOS">Asuntos Propios</option>
-                      <option [value]="tipoAusencia.OTRO">Otro</option>
                     </select>
                     <div class="error-wrapper" *ngIf="absenceForm.get('tipo')?.touched && absenceForm.get('tipo')?.invalid">
                       <i class="bi bi-exclamation-circle-fill text-danger position-absolute end-0 top-50 translate-middle-y me-4"></i>
