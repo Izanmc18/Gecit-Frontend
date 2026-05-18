@@ -27,7 +27,9 @@ export class TurnManagementService {
       };
 
       eventSource.onerror = (error) => {
-        observer.error(error);
+        // No llamamos a observer.error(error) para evitar destruir la suscripción de Angular.
+        // El EventSource nativo del navegador gestiona la reconexión automática de forma transparente.
+        console.warn('SSE connection interrupted. Browser will automatically reconnect...', error);
       };
 
       return () => {
