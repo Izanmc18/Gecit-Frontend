@@ -177,7 +177,7 @@ export class DashboardAdmin implements OnInit, OnDestroy {
     }
 
     if (filter !== 'all') {
-      list = list.filter(cita => (cita.tramite?.nombreTramite || (cita as any).competencia?.nombre) === filter);
+      list = list.filter(cita => this.getTramiteNombre(cita) === filter);
     }
 
     return list;

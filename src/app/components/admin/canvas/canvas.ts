@@ -179,6 +179,8 @@ export class AdminCanvasComponent implements OnInit {
     const room = this.selectedRoom();
     if (!room) return;
 
+    this.updateStageSize();
+
     const wrapper = document.querySelector('.canvas-stage-wrapper');
     if (!wrapper) return;
 
@@ -223,7 +225,16 @@ export class AdminCanvasComponent implements OnInit {
 
   loadBackgroundImage() {
     const room = this.selectedRoom();
-    if (!room?.urlPlano) {
+    if (!room) {
+      this.configImage.set(null);
+      return;
+    }
+
+    if (room.nombreSala === 'Planta Principal') {
+      room.urlPlano = 'assets/images/plano/office_plan.png';
+    }
+
+    if (!room.urlPlano) {
       this.configImage.set(null);
       return;
     }
@@ -231,7 +242,11 @@ export class AdminCanvasComponent implements OnInit {
     const image = new Image();
     image.crossOrigin = 'Anonymous';
 
-    image.src = `http://localhost:3000/public/${room.urlPlano}`;
+    if (room.urlPlano.includes('assets/')) {
+      image.src = `/${room.urlPlano}`;
+    } else {
+      image.src = `http://localhost:3000/public/${room.urlPlano}`;
+    }
     
     image.onload = () => {
       this.configImage.set({
@@ -386,11 +401,30 @@ export class AdminCanvasComponent implements OnInit {
 
     const newWidth = Math.round(node.width() * node.scaleX());
     const newHeight = Math.round(node.height() * node.scaleY());
+    const newX = Math.round(node.x());
+    const newY = Math.round(node.y());
 
+    // Reset scale to 1 to avoid double scaling
     node.scaleX(1);
     node.scaleY(1);
 
-    this.updateTableSize(table.id, newWidth, newHeight);
+    // Update the local state
+    this.tables.update(current => 
+      current.map(t => {
+        if (t.id === table.id) {
+          const updated = { ...t, ancho: newWidth, largo: newHeight, posX: newX, posY: newY };
+          if ((t as any).pos_x !== undefined) (updated as any).pos_x = newX;
+          if ((t as any).pos_y !== undefined) (updated as any).pos_y = newY;
+          return updated;
+        }
+        return t;
+      })
+    );
+    this.cdr.detectChanges();
+    this.stage?.getStage()?.batchDraw();
+
+    this.saveTableChanges(table.id, { ancho: newWidth, largo: newHeight, posX: newX, posY: newY });
+    this.updateTransformer();
   }
 
   private updateTablePosition(id: string, x: number, y: number) {
@@ -518,7 +552,7 @@ export class AdminCanvasComponent implements OnInit {
     this.isSaving.set(true);
     const saveObservables = tables.map(table => {
      
-      const node = stage.findOne('.group-' + table.id);
+      const node = stage.findOne('#' + table.id);
       
       let x = table.posX;
       let y = table.posY;

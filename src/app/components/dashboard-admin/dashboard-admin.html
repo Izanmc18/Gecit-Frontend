@@ -119,7 +119,7 @@
                     <select class="filter-select" (change)="agendaTramiteFilter.set($any($event.target).value); agendaPage.set(1)">
                         <option value="all">Todos los Trámites</option>
                         @for (comp of competencias(); track comp.id) {
-                            <option [value]="comp.nombre">{{ comp.nombre }}</option>
+                            <option [value]="comp.nombreCompetencia || comp.nombre">{{ comp.nombreCompetencia || comp.nombre }}</option>
                         }
                     </select>
                 </div>
