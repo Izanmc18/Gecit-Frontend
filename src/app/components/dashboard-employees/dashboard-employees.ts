@@ -233,7 +233,7 @@ export class DashboardEmployees implements OnInit, OnDestroy {
       const fechaInicio = start.toISOString().split('T')[0];
       const fechaFin = end.toISOString().split('T')[0];
 
-      const filters = { idUsuarioAsignado: user.id, fechaInicio, fechaFin, includeUnassigned: true };
+      const filters = { idUsuarioAsignado: user.id, fechaInicio, fechaFin, includeUnassigned: true, limit: 200 };
       return this.appointmentService.getAppointments(filters).pipe(
         tap({
           next: (response) => {
@@ -317,7 +317,7 @@ export class DashboardEmployees implements OnInit, OnDestroy {
         const fechaInicio = start.toISOString().split('T')[0];
         const fechaFin = end.toISOString().split('T')[0];
 
-        const filters = { idUsuarioAsignado: user.id, fechaInicio, fechaFin, includeUnassigned: true };
+        const filters = { idUsuarioAsignado: user.id, fechaInicio, fechaFin, includeUnassigned: true, limit: 200 };
         this.appointmentService.getAppointments(filters).subscribe({
           next: (response) => {
             this.zone.run(() => {

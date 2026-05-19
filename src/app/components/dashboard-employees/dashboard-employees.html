@@ -53,7 +53,7 @@
                 </thead>
                 <tbody>
                   @for (cita of filteredAppointments(); track cita.id) {
-                    @if (true) {
+                    @if (cita.fechaHora.startsWith(today())) {
                       <tr>
                         <td class="ps-4">
                           <span class="fw-bold text-primary">{{ cita.fechaHora | date:'HH:mm' }}</span>
