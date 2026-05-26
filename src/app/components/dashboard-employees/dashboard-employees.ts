@@ -232,7 +232,7 @@ export class DashboardEmployees implements OnInit, OnDestroy {
       
       const fechaInicio = start.toISOString().split('T')[0];
       const fechaFin = end.toISOString().split('T')[0];
-
+      //AQUI
       const filters = { idUsuarioAsignado: user.id, fechaInicio, fechaFin, includeUnassigned: true, limit: 200 };
       return this.appointmentService.getAppointments(filters).pipe(
         tap({
